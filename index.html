@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#111820">
+<meta name="description" content="末日频道：幸存者——沉浸式末日生存聊天文字游戏">
+<link rel="manifest" href="./manifest.webmanifest">
+<title>末日频道：幸存者</title>
+<style>
+:root{color-scheme:dark;--bg:#0c1117;--panel:#151e27;--panel2:#1c2934;--line:#2c3a46;--text:#e7edf2;--muted:#9babb8;--green:#8bd3a8;--amber:#e7c27a;--red:#ef8989}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#1b2a35 0,#0c1117 58%);color:var(--text);font:15px/1.5 system-ui,-apple-system,"Noto Sans SC",sans-serif;min-height:100vh}button,input{font:inherit}button{cursor:pointer}.app{max-width:820px;margin:auto;min-height:100vh;display:flex;flex-direction:column;padding:0 12px env(safe-area-inset-bottom)}header{padding:20px 6px 12px;border-bottom:1px solid var(--line)}.eyebrow{color:var(--green);font-size:11px;letter-spacing:2px}.brand{font-size:25px;font-weight:800;letter-spacing:1px}.subtitle{color:var(--muted);font-size:12px}.status{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}.stat,.card{background:#151e27d9;border:1px solid var(--line);border-radius:12px;padding:10px}.stat small{display:block;color:var(--muted);font-size:11px}.stat strong{font-size:16px}.section-title{font-size:12px;color:var(--muted);letter-spacing:1px;margin:14px 2px 8px}.people{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}.person{border:1px solid var(--line);background:var(--panel);border-radius:10px;color:var(--text);padding:9px 3px;text-align:center;min-width:0}.person.active{border-color:var(--green);background:#1c302b}.avatar{font-size:24px;display:block}.person b{font-size:12px;display:block}.person small{font-size:10px;color:var(--muted)}.feed{flex:1;min-height:180px;max-height:37vh;overflow:auto;margin:12px 0;padding:12px;background:#0b1016b8;border:1px solid var(--line);border-radius:12px}.msg{margin:0 0 14px}.msg .name{font-size:11px;color:var(--green);font-weight:700}.msg .body{white-space:pre-wrap;overflow-wrap:anywhere;margin-top:3px}.msg.me .name{color:var(--amber)}.msg.system .name{color:var(--muted)}.actions{display:flex;gap:7px;flex-wrap:wrap;margin:8px 0}.chip{border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:999px;padding:7px 11px;font-size:12px}.composer{display:flex;gap:8px;position:sticky;bottom:0;padding:10px 0 calc(12px + env(safe-area-inset-bottom));background:linear-gradient(transparent,#0c1117 20%)}.composer input{flex:1;min-width:0;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;color:var(--text);outline:none}.send{border:0;border-radius:10px;background:var(--green);color:#102019;padding:0 17px;font-weight:800}.foot{font-size:10px;text-align:center;color:#738391;padding:0 0 12px}.notice{color:var(--amber);font-size:12px}@media(min-width:650px){.feed{max-height:43vh}.app{padding-left:20px;padding-right:20px}}
+</style>
+</head>
+<body>
+<div class="app">
+<header><div class="eyebrow">AFTERFALL NETWORK · DAY 018</div><div class="brand">末日频道：幸存者</div><div class="subtitle">信号微弱 · 未知区域 · 频道里还有人活着</div></header>
+<section class="status" aria-label="生存状态"><div class="stat"><small>体力</small><strong id="hp">78 / 100</strong></div><div class="stat"><small>食物</small><strong id="food">5 份</strong></div><div class="stat"><small>信号</small><strong>不稳定</strong></div></section>
+<div class="section-title">幸存者频道 / 选择一位联系人</div>
+<section class="people" id="people">
+<button class="person active" data-id="lin"><span class="avatar">🧭</span><b>林野</b><small>侦察员 · 冷静</small></button>
+<button class="person" data-id="mira"><span class="avatar">🩹</span><b>米拉</b><small>医护 · 温和</small></button>
+<button class="person" data-id="oldzhou"><span class="avatar">🔧</span><b>老周</b><small>维修工 · 直率</small></button>
+<button class="person" data-id="ash"><span class="avatar">📡</span><b>灰鸦</b><small>神秘信号源</small></button>
+</section>
+<div class="section-title" id="channelTitle"># 林野 的私聊</div>
+<div class="feed" id="feed" aria-live="polite"></div>
+<div class="actions"><button class="chip" data-say="外面现在是什么情况？">询问外界</button><button class="chip" data-say="你那边还安全吗？">询问安全</button><button class="chip" data-say="我有点撑不住了，能聊聊吗？">说说近况</button><button class="chip" id="explore">查看周围</button></div>
+<form class="composer" id="form"><input id="entry" autocomplete="off" placeholder="输入消息……" maxlength="500" aria-label="输入消息"><button class="send" type="submit">发送</button></form>
+<div class="foot">离线可打开 · 对话保存在本机 · 原型版 NPC 对话</div>
+</div>
+<script>
+const cast={
+lin:{name:"林野",icon:"🧭",intro:"频道接通了？我是林野，正在旧城区外围。先说重点，我的电量不多。",lines:["我刚绕过东侧街口。别走主路，那里有动静。","先别急着冒险。把你能确认的情况说清楚，我们再决定下一步。","收到。我会留意附近的信号，有新消息再告诉你。"]},
+mira:{name:"米拉",icon:"🩹",intro:"嗨，我在。这里暂时安全一点。你还好吗？别勉强自己，慢慢说。",lines:["水和休息都很重要。能坐下来喘口气，就先别急着赶路。","我明白，很多事一下子压过来会让人很累。我们一件一件处理。","如果你受伤了，先告诉我伤口位置和严重程度。"]},
+oldzhou:{name:"老周",icon:"🔧",intro:"喂，能听见不？老周在这儿。发电机又闹脾气了，有话快说。",lines:["这鬼天气，设备说坏就坏。能修的东西就别扔，零件以后都值钱。","我建议先盘点手头东西，别把最后一点补给浪费在没把握的事上。","行，我记下了。等我忙完这边再看看能不能帮你。"]},
+ash:{name:"灰鸦",icon:"📡",intro:"……信号确认。你可以叫我灰鸦。别问我为什么还在这个频道。",lines:["你也听到那段重复的广播了？每隔十七分钟出现一次。","信息不完整时，不要急着相信任何一个解释。先交叉验证。","频道可能并不只有我们。今晚留意 03:17 的信号。"]}
+};
+let active="lin",hp=78,food=5;
+const history=JSON.parse(localStorage.getItem("afterfall-chat-v1")||"{}");
+function save(){localStorage.setItem("afterfall-chat-v1",JSON.stringify(history));localStorage.setItem("afterfall-stats",JSON.stringify({hp,food}))}
+const stats=JSON.parse(localStorage.getItem("afterfall-stats")||"null");if(stats){hp=stats.hp??hp;food=stats.food??food}
+function drawStats(){document.getElementById("hp").textContent=hp+" / 100";document.getElementById("food").textContent=food+" 份"}
+function add(who,text,kind=""){const box=document.createElement("div");box.className="msg "+kind;const n=document.createElement("div");n.className="name";n.textContent=who;const b=document.createElement("div");b.className="body";b.textContent=text;box.append(n,b);document.getElementById("feed").append(box);document.getElementById("feed").scrollTop=999999}
+function init(){document.getElementById("feed").innerHTML="";if(!history[active])history[active]=[{who:cast[active].name,text:cast[active].intro,kind:""}];history[active].forEach(m=>add(m.who,m.text,m.kind));document.getElementById("channelTitle").textContent="# "+cast[active].name+" 的私聊";document.querySelectorAll(".person").forEach(b=>b.classList.toggle("active",b.dataset.id===active));save()}
+function replyTo(t){const s=t.toLowerCase();let r;if(/安全|危险|外面|情况|哪里|路线|去哪/.test(s))r=cast[active].lines[0];else if(/累|难受|撑不住|痛苦|害怕|怕|聊聊|心情/.test(s))r=cast[active].lines[1];else if(/谢谢|收到|好吧|好的|明白/.test(s))r=cast[active].lines[2];else if(/食物|水|补给|资源|吃/.test(s))r=active==="mira"?"先检查饮水和食物还剩多少，按紧急程度分配。"+cast[active].lines[0]: "先盘点补给，不要一次用光。"+cast[active].lines[1];else if(/你是谁|名字/.test(s))r="我是"+cast[active].name+"。"+cast[active].intro;else r=cast[active].lines[Math.floor(Math.random()*cast[active].lines.length)];return r}
+function send(t){t=t.trim();if(!t)return;history[active]=history[active]||[];history[active].push({who:"你",text:t,kind:"me"});add("你",t,"me");const r=replyTo(t);history[active].push({who:cast[active].name,text:r,kind:""});setTimeout(()=>{if(active===selectedAtSend){add(cast[active].name,r);save()}},350);save()}
+let selectedAtSend="lin";
+document.querySelectorAll(".person").forEach(b=>b.addEventListener("click",()=>{active=b.dataset.id;init()}));
+document.getElementById("form").addEventListener("submit",e=>{e.preventDefault();const v=document.getElementById("entry").value;selectedAtSend=active;send(v);document.getElementById("entry").value=""});
+document.querySelectorAll("[data-say]").forEach(b=>b.addEventListener("click",()=>{selectedAtSend=active;send(b.dataset.say)}));
+document.getElementById("explore").addEventListener("click",()=>{const events=["你在附近发现一处废弃便利店，门口有新鲜脚印。","远处传来三声金属撞击，无法确认来源。","你找到半瓶未开封的水。体力恢复 4 点。","无线电捕捉到一段断续的求救信号。"];const e=events[Math.floor(Math.random()*events.length)];if(e.includes("体力恢复"))hp=Math.min(100,hp+4);if(e.includes("水。"))food+=1;drawStats();history[active]=history[active]||[];history[active].push({who:"系统事件",text:e,kind:"system"});add("系统事件",e,"system");save()});
+drawStats();init();
+if("serviceWorker" in navigator && location.protocol!=="file:"){window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}))}
+</script>
+</body></html>
