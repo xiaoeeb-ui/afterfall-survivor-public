@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<rect width="512" height="512" rx="104" fill="#111820"/>
+<path d="M72 118h368v276H72z" fill="#182833" stroke="#8bd3a8" stroke-width="12" rx="28"/>
+<path d="M130 180h252M130 224h170M130 268h218" stroke="#8bd3a8" stroke-width="18" stroke-linecap="round"/>
+<circle cx="364" cy="328" r="48" fill="#e7c27a"/>
+<path d="M344 328l14 14 28-31" fill="none" stroke="#111820" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="256" y="458" fill="#e7edf2" font-size="34" font-family="sans-serif" font-weight="700" text-anchor="middle">AFTERFALL</text>
+</svg>
