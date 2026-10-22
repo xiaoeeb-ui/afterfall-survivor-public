@@ -57,7 +57,7 @@ export default {
       return json({ error: "找不到这个接口。" }, 404);
     }
     if (origin !== ALLOWED_ORIGIN) return json({ error: "请求来源未获允许。" }, 403);
-    if (!env.GEMINI_API_KEY) return json({ error: "后端还没有配置 Gemini API 密钥。" }, 503);
+    if (!env.GEMINI_API_KEY && !env.GROQ_API_KEY && !env.OPENROUTER_API_KEY && !env.AI) return json({ error: "后端尚未配置可用的 AI 服务。" }, 503);
 
     let body;
     try {
@@ -110,12 +110,14 @@ export default {
       );
 
       // Retry a transient 503 once, then try the previous stable Flash model.
-      let response = await requestModel("gemini-3.8-flash");
-      if (response.status === 503) {
+      let response = env.GEMINI_API_KEY
+        ? await requestModel("gemini-3.8-flash")
+        : new Response(JSON.stringify({ error: { message: "Gemini key is not configured" } }), { status: 503, headers: { "Content-Type": "application/json" } });
+      if (env.GEMINI_API_KEY && response.status === 503) {
         await new Promise(resolve => setTimeout(resolve, 800));
         response = await requestModel("gemini-3.8-flash");
       }
-      if (response.status === 503 || response.status === 404 || response.status === 429) {
+      if (env.GEMINI_API_KEY && (response.status === 503 || response.status === 404 || response.status === 429)) {
         console.warn("Primary Gemini model unavailable or rate-limited; trying fallback Flash model:", response.status);
         response = await requestModel("gemini-3.6-flash");
       }
@@ -171,6 +173,22 @@ export default {
             console.warn("AI fallback provider failed:", provider.name, altResponse.status, JSON.stringify(altResult.error || {}).slice(0, 500));
           } catch (fallbackError) {
             console.warn("AI fallback provider request failed:", provider.name, fallbackError?.message || "unknown");
+          }
+        }
+        if (!result.candidates?.[0]?.content?.parts?.some(part => part.text) && env.AI) {
+          try {
+            const aiResult = await env.AI.run("@cf/meta/llama-3.1-8b-instruct-fp8", {
+              messages,
+              max_tokens: 300,
+              temperature: 0.8
+            });
+            const aiText = String(aiResult?.response || "").trim();
+            if (aiText) {
+              console.log("AI fallback succeeded: Cloudflare Workers AI");
+              result = { candidates: [{ content: { parts: [{ text: aiText }] } }] };
+            }
+          } catch (aiError) {
+            console.warn("Cloudflare Workers AI fallback failed:", aiError?.message || "unknown");
           }
         }
         if (!result.candidates?.[0]?.content?.parts?.some(part => part.text)) {
