@@ -359,6 +359,8 @@ export default {
       const genericGreetingMismatch = casualInvite && /好久不见|你好吗[，,！!？? ]*最近怎么样|都这些天你一个人过来了|你是什么意思|忘了睡觉了/.test(finalReply);
       const contextFailure = /你刚刚(对我)?说(了|的是|什么)|你说[“「].{0,100}[”」]吗|你说了[“「].{0,100}[”」]|我接着你说|你嚷嚷着|大家把暂时的不适|你在说我呢|你刚刚说了什么事儿|玩家.{0,80}(?:想开玩笑|正式来找到我|这轮真正想表达|说[：:]|希望|正在)|你回复[：:]|玩家说[：:]|先判断玩家|严禁用|最多两句|你是公共频道里另一位幸存者|对你回应|角色视角|玩家这轮真正想表达|你回复[“「]|你睡不着吗哈哈/.test(finalReply);
       const echoesPlayer = message.length >= 5 && finalReply.includes(message.slice(0, Math.min(16, message.length)));
+      const complaint = /答非所问|说话牛头不对马嘴|牛头不对马嘴|没接上|没听懂|说不完整|说话说不完整|角色还是|问题没解决|不对劲|不对啊|不是这个意思|你没听|你没接/.test(message);
+      const casual = /聊聊天|聊聊|随便聊|嘻嘻|哈哈|陪我|孤单|无聊|睡不着|抱抱/.test(message);
       if (!finalReply || leakedInstruction || stillHasChinese < 2 || contextFailure || echoesPlayer || repeatsReply || genericGreetingMismatch) {
         const intimate = /抱着睡|抱抱|抱我|陪我睡|陪我一会儿|陪我一会/.test(message);
         const playfulChat = /聊聊天|聊聊|随便聊|嘻嘻|哈哈/.test(message);
