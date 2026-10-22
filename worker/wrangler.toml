@@ -2,3 +2,6 @@ name = "afterfall-ai-chat-api"
 main = "index.js"
 compatibility_date = "2026-10-22"
 workers_dev = true
+
+[ai]
+binding = "AI"
