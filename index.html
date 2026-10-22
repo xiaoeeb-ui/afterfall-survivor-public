@@ -111,7 +111,7 @@ function send(text){
  persist();renderState();
  const responders=sendMode==="group"?chooseResponders(text):[sendActive];
  const id=responders[0],history=chat.slice(0,-1).slice(-10).map(m=>({...m})),feedKey=key;
- const shouldChimeIn=sendMode==="group"&&(/大家|你们|有人吗|陪我|聊聊天|聊聊|孤单|孤独|难过|害怕|想哭|哈哈|好无聊|谢谢你们|你们觉得|你们说/.test(text));
+ const shouldChimeIn=sendMode==="group"&&(/大家|你们|有人吗|陪我|聊聊天|聊聊|孤单|孤独|难过|害怕|想哭|哈哈|好无聊|谢谢你们|你们觉得|你们说|还有的人|其他人|其他幸存者|他们哪里|他们在哪|怎么就你|都去哪了|谁还在|你们有干粮|有没有干粮|有吃的吗|你们怎么样|大家的情况/.test(text));
  const secondaryPool=Object.keys(cast).filter(x=>x!==id);
  const secondary=shouldChimeIn?secondaryPool[(state.eventCount+text.length+state.hour)%secondaryPool.length]:null;
  askCharacter(id,text,history).then(async reply=>{
@@ -126,7 +126,7 @@ function send(text){
   if(secondary){
    try{
     const followHistory=(state.chats[feedKey]||[]).slice(-12).map(m=>({...m}));
-    const follow=await askCharacter(secondary,"请根据刚才的频道对话自然接一句。不要复述前一个角色，不要强行转任务，也不要每次都安慰。",followHistory);
+    const follow=await askCharacter(secondary,"你是公共频道里另一位不同地点的幸存者。请先看清玩家刚才问了什么、第一位角色已经回答了什么，再像群聊中的另一个人自然补充一句：可以补充自己知道的其他幸存者近况、纠正不准确的信息、开个玩笑或回应情绪。不要重复前一个角色，不要假装知道未传来的消息，不要编造物资数量，也不要为了接话而硬转任务。",followHistory);
     if(follow){
      const t=String(state.hour).padStart(2,"0")+":00";
      state.chats[feedKey]=state.chats[feedKey]||[];state.chats[feedKey].push({who:cast[secondary].name,text:follow,time:t});
