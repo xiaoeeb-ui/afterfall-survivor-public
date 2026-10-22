@@ -336,7 +336,7 @@ export default {
       const stillHasChinese = (finalReply.match(/[\u4e00-\u9fff]/g) || []).length;
       if (stillHasChinese >= 8 && !leakedInstruction && !/[。！？!?]$/.test(finalReply)) finalReply += "。";
       // Reject common context failures: parroting the player, narrating their words, or copying another speaker.
-      const contextFailure = /你刚刚(对我)?说(了什么|的是)|你说[“「].{0,100}[”」]吗|你说了[“「].{0,100}[”」]|我接着你说|你嚷嚷着|大家把暂时的不适|你在说我呢|你刚刚说了什么事儿/.test(finalReply);
+      const contextFailure = /你刚刚(对我)?说(了|的是|什么)|你说[“「].{0,100}[”」]吗|你说了[“「].{0,100}[”」]|我接着你说|你嚷嚷着|大家把暂时的不适|你在说我呢|你刚刚说了什么事儿/.test(finalReply);
       const echoesPlayer = message.length >= 5 && finalReply.includes(message.slice(0, Math.min(16, message.length)));
       // Short, natural replies are valid. Replace empty, leaked, or clearly incoherent output with a contextual in-character line.
       if (!finalReply || leakedInstruction || stillHasChinese < 2 || contextFailure || echoesPlayer) {
