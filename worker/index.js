@@ -334,27 +334,41 @@ export default {
         // character prefix, even when the model mistakenly names another character.
         .replace(/^\s*(?:(?:玩家|你|林野|米拉|老周|灰鸦|小满)\s*[:：]\s*)+/u, "")
         .trim();
-      const stillHasChinese = (finalReply.match(/[\u4e00-\u9fff]/g) || []).length;
+      const stillHasChinese = (finalReply.match(/[\\u4e00-\\u9fff]/g) || []).length;
       if (stillHasChinese >= 8 && !leakedInstruction && !/[。！？!?]$/.test(finalReply)) finalReply += "。";
-      // Reject common context failures: parroting the player, narrating their words, or copying another speaker.
+      const recentCharacterReplies = prior.filter(item => item && String(item.who || "") === character.name).map(item => String(item.content || "")).slice(-4);
+      const repeatsReply = recentCharacterReplies.some(old => old.trim() && old.trim() === finalReply.trim());
+      const casualInvite = /聊聊天|聊聊|随便聊|嘻嘻|哈哈|抱着睡|抱抱|抱我|陪我睡|陪我一会儿|陪我一会|陪我聊/.test(message);
+      const genericGreetingMismatch = casualInvite && /好久不见|你好吗[，,！!？? ]*最近怎么样|都这些天你一个人过来了|你是什么意思|忘了睡觉了/.test(finalReply);
       const contextFailure = /你刚刚(对我)?说(了|的是|什么)|你说[“「].{0,100}[”」]吗|你说了[“「].{0,100}[”」]|我接着你说|你嚷嚷着|大家把暂时的不适|你在说我呢|你刚刚说了什么事儿|玩家.{0,80}(?:想开玩笑|正式来找到我|这轮真正想表达|说[：:]|希望|正在)|你回复[：:]|玩家说[：:]|先判断玩家|严禁用|最多两句|你是公共频道里另一位幸存者|对你回应|角色视角|玩家这轮真正想表达|你回复[“「]|你睡不着吗哈哈/.test(finalReply);
       const echoesPlayer = message.length >= 5 && finalReply.includes(message.slice(0, Math.min(16, message.length)));
-      // Short, natural replies are valid. Replace empty, leaked, or clearly incoherent output with a contextual in-character line.
-      if (!finalReply || leakedInstruction || stillHasChinese < 2 || contextFailure || echoesPlayer) {
-        const casual = /聊聊天|聊聊|孤单|孤独|无聊|陪我|哈哈|嘻嘻|睡不着|抱着睡|抱我|开玩笑/.test(message);
-        const complaint = /逻辑|答非所问|听不懂|不舒适|不舒服/.test(message);
+      if (!finalReply || leakedInstruction || stillHasChinese < 2 || contextFailure || echoesPlayer || repeatsReply || genericGreetingMismatch) {
+        const intimate = /抱着睡|抱抱|抱我|陪我睡|陪我一会儿|陪我一会/.test(message);
+        const playfulChat = /聊聊天|聊聊|随便聊|嘻嘻|哈哈/.test(message);
         const safeReplies = complaint ? {
-          lin: "……这句确实没接上。你说得对，我重新听你说。",
-          mira: "你说得对，我刚才没接住你的意思。我们先好好聊，不扯别的了。",
-          oldzhou: "行，是我把话说岔了。重来，你刚才想聊什么？",
-          ash: "嗯，刚才那句不对。我听着，你继续。",
-          xiaoman: "啊……我刚才说跑偏了，对不起。咱重新聊。"
+          lin: "……刚才那句确实没接上。算我的，我重新听着。",
+          mira: "哎，刚才我没接住你的话。重来，这回不把话题岔开了。",
+          oldzhou: "行，刚才聊岔了。咱重来，这回不瞎接话。",
+          ash: "嗯，刚才那句不对。我听着，这回接你的话说。",
+          xiaoman: "啊，我刚刚说跑偏了。再来一次，这回认真听。"
+        } : intimate ? {
+          lin: "要真能把被子分你一半就好了。现在只能隔着电台陪你聊会儿，别嫌我话少。",
+          mira: "哎，真想给你塞床暖和被子。隔着电台抱不到你，不过我可以陪你慢慢聊一会儿。",
+          oldzhou: "抱是抱不到，电台又不是长手的。行了，我先陪你唠会儿，困了就安心睡。",
+          ash: "隔着这台破电台，手伸再长也够不着。……不过今晚我暂时不关频道。",
+          xiaoman: "要是能把被窝分你一半就好啦。现在我陪你说会儿话，等你困了再睡嘛。"
+        } : playfulChat ? {
+          lin: "行啊，难得不用汇报路线。你先笑什么呢？也说给我听听。",
+          mira: "嘻嘻，听见啦。我刚忙完，正好偷个懒。来，咱们聊点没用但开心的。",
+          oldzhou: "聊呗，难得这破收音机没先给我添堵。你今天有啥乐子？",
+          ash: "嗯，频道暂时归闲聊管。说吧，我今晚还没困到连话都懒得说。",
+          xiaoman: "好呀！我刚刚正想找人闲聊呢。你先起个头，还是我讲个糗事？"
         } : casual ? {
-          lin: /睡不着|哈哈|嘻嘻/.test(message) ? "哈，被你发现了？雨声吵得人脑仁疼，躺下也睡不着。你倒是精神不错啊。" : "我不太会找话题，不过我在听。你今天有没有碰上什么小事？",
-          mira: /睡不着|哈哈|嘻嘻/.test(message) ? "林野那家伙？他嘴上不说，估计又在硬撑。你笑他归笑他，别真让他一个人淋太久的雨。" : "好啊，先不说那些糟心事了。你平时无聊的时候会做什么？",
-          oldzhou: "聊呗。今天这破收音机倒是安静了会儿，难得。",
-          ash: /睡不着|哈哈|嘻嘻/.test(message) ? "隔着电台都听得出你在笑他。让他嘴硬去吧，雨声确实够烦人的。" : "可以。频道里难得不用谈正事……你先说，或者我讲个小事。",
-          xiaoman: "好呀！我刚才还在想，末日前你最爱吃什么来着？"
+          lin: "我听着。你慢慢说，不急。",
+          mira: "我在呢，慢慢聊。今天先不急着解决什么问题。",
+          oldzhou: "说吧，我听着呢。今天不谈正事也行。",
+          ash: "在听。今晚可以先不谈正事。",
+          xiaoman: "我在我在，咱们随便聊！"
         } : {
           lin: "嗯，我听着。你接着说。",
           mira: "我在呢，慢慢说。",
