@@ -407,8 +407,9 @@ export default {
       }
       return json({ reply: finalReply, character: character.name });
     } catch (error) {
-      console.error("Gemini request failed:", error?.message || "unknown");
-      return json({ error: "连接 AI 服务失败，请检查网络后重试。" }, 502);
+      const diagnostic = String(error?.message || error || "unknown").slice(0, 500);
+      console.error("Chat handler failed:", diagnostic, error?.stack || "");
+      return json({ error: "AI 后端内部错误，诊断信息：" + diagnostic }, 502);
     }
   }
 };
