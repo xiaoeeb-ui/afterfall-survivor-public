@@ -70,19 +70,32 @@ function remember(id,text){state.memories[id].push(text.slice(0,160));state.memo
 async function askCharacter(id,userMessage,historyArr){const history=(historyArr||[]).slice(-12).map(m=>({who:m.who==="你"?"玩家":m.who,content:String(m.text||"")}));const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),20000);let response;try{response=await fetch(API+"/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},signal:controller.signal,body:JSON.stringify({characterId:id,message:userMessage,history,relationship:state.trust[id],memory:state.memories[id],world:{playerLocation:"旧城区外围临时救护点（玩家独自在此）",communication:"所有幸存者通过无线电公共频道远程交流，彼此不在同一地点",playerLocation:(locations[state.location]||locations.aid).name,clues:state.clues,day:state.day,time:String(state.hour).padStart(2,"0")+":00",health:state.hp,stamina:state.stamina,food:state.food,water:state.water,weather:state.weather,condition:state.condition,lastEvent:state.lastEvent,inventory:state.inventory,morale:state.morale}})})}catch(err){if(err&&err.name==="AbortError")throw new Error("角色回复超时（20 秒），请再试一次。");throw new Error("连接 AI 失败，请检查网络后重试。")}finally{clearTimeout(timer)}const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.error||"AI 请求失败");return String(data.reply||"").replace(/^\\s*(?:(?:林野|米拉|老周|灰鸦|小满)\\s*[:：]\\s*)+/u,"").trim()}
 function chooseResponders(text){
   const t=String(text||"").trim();
-  // Explicitly addressed people and established topics take priority over generic keyword matches.
+  // Explicitly addressed people and established topics take priority.
   if(/林野|高架桥那位|高架路那位/.test(t))return ["lin"];
   if(/米拉/.test(t))return ["mira"];
   if(/老周/.test(t))return ["oldzhou"];
   if(/灰鸦/.test(t))return ["ash"];
-  if(/小满/.test(t))return ["xiaoman"];
-  if(/光头强/.test(t))return ["xiaoman"];
+  if(/小满/.test(t)||/光头强/.test(t))return ["xiaoman"];
+  // Short acknowledgements should continue the last speaker's conversation, not reset it.
+  if(/^(是的|对|嗯|嗯嗯|不是|没错|然后呢|真的吗|谢谢|好呀|好啊|哈哈|嘻嘻|呜呜|=_=)[！!。？?…～\s]*$/.test(t)){
+    const recent=(state.chats.group||[]).slice().reverse().find(m=>m&&m.who&&m.who!=="你"&&m.who!=="系统提示"&&m.who!=="探索事件"&&m.kind!=="system");
+    const map={"林野":"lin","米拉":"mira","老周":"oldzhou","灰鸦":"ash","小满":"xiaoman"};
+    if(recent&&map[recent.who])return [map[recent.who]];
+  }
+  // Broad group questions should rotate among survivors rather than always defaulting to Xiaoman.
+  if(/大家|你们|还有的人|其他人|其他幸存者|他们哪里|他们在哪|怎么就你|所有人|各位|谁还在|有人吗|你们有干粮|有没有干粮|有吃的吗/.test(t)){
+    const roster=["lin","mira","oldzhou","ash","xiaoman"];
+    const recent=(state.chats.group||[]).slice().reverse().find(m=>m&&m.who&&m.who!=="你"&&m.who!=="系统提示"&&m.who!=="探索事件");
+    const map={"林野":"lin","米拉":"mira","老周":"oldzhou","灰鸦":"ash","小满":"xiaoman"};
+    const last=recent&&map[recent.who];
+    const pool=roster.filter(x=>x!==last);
+    return [pool[(state.eventCount+ t.length + state.hour)%pool.length]];
+  }
   if(/绷带|药|伤口|病人|医护/.test(t))return ["mira"];
   if(/修|电|机器|燃料|工具|发电机|零件|废金属|电池/.test(t))return ["oldzhou"];
   if(/信号|广播|坐标|频率|无线电|听见|听到声音/.test(t))return ["ash"];
   if(/外面|侦察|危险|脚印|探索|路线|高架|下雨|雨势/.test(t))return ["lin"];
   if(/孤单|孤独|没安全感|抱着睡|抱团取暖|陪我睡|睡觉|好无聊|无聊|陪我聊|聊聊天|来我这里|来我这|玩玩|哈喽|你好|哈哈|嘻嘻|呜呜|委屈|难过|害怕|想哭|安慰|好无情/.test(t))return ["mira"];
-  // Casual, context-free lines should not be assigned to a random specialist every time.
   if(/^(哦+|嗯+|呃+|=_=|啥玩意儿|不是吧|天呢|啊+|为啥|为什么|哪里闷了|仔细想想|听不懂思密达)[！!。？?…]*$/.test(t))return ["mira"];
   return ["xiaoman"];
 }
