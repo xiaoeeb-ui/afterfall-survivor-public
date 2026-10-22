@@ -80,8 +80,8 @@ export default {
 始终用简体中文自然地以角色身份回复，通常 1-5 句，像真实的人聊天，不要像客服或百科。结合提供的聊天上下文记住之前说过的话，主动追问、表达情绪、保留个人立场，并根据玩家的话具体回应。可以提出符合末日世界观的线索、风险和选择，但不要擅自宣称玩家已完成未做过的行动。不要声称自己是现实中的真人或能看到玩家。`;
 
     try {
-      const response = await fetch(
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent",
+      const requestModel = async (model) => fetch(
+        "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent",
         {
           method: "POST",
           headers: {
@@ -95,6 +95,17 @@ export default {
           })
         }
       );
+
+      // Retry a transient 503 once, then try the previous stable Flash model.
+      let response = await requestModel("gemini-3.8-flash");
+      if (response.status === 503) {
+        await new Promise(resolve => setTimeout(resolve, 800));
+        response = await requestModel("gemini-3.8-flash");
+      }
+      if (response.status === 503 || response.status === 404) {
+        console.warn("Primary Gemini model unavailable, trying fallback Flash model:", response.status);
+        response = await requestModel("gemini-3.6-flash");
+      }
       const result = await response.json().catch(() => ({}));
       if (!response.ok) {
         console.error("Gemini API returned status", response.status, JSON.stringify(result.error || {}).slice(0, 1200));
