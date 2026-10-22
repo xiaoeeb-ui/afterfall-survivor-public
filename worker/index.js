@@ -70,18 +70,18 @@ export default {
     if (!character) return json({ error: "请选择有效的幸存者。" }, 400);
     if (!message) return json({ error: "消息不能为空。" }, 400);
 
-    const prior = Array.isArray(body.history) ? body.history.slice(-16) : [];
+    const prior = Array.isArray(body.history) ? body.history.slice(-8) : [];
     const contents = [];
     for (const item of prior) {
       if (!item || !["user", "model"].includes(item.role)) continue;
-      const text = String(item.content || "").trim().slice(0, 1200);
+      const text = String(item.content || "").trim().slice(0, 500);
       if (text) contents.push({ role: item.role, parts: [{ text }] });
     }
     contents.push({ role: "user", parts: [{ text: message }] });
 
     const relationship = Number.isFinite(Number(body.relationship)) ? Number(body.relationship) : 0;
     const memory = Array.isArray(body.memory) ? body.memory.slice(-8).map(x => String(x).slice(0, 240)).join("\\n") : "";
-    const world = body.world && typeof body.world === "object" ? JSON.stringify(body.world).slice(0, 2200) : "玩家在旧城区临时救护点";
+    const world = body.world && typeof body.world === "object" ? JSON.stringify(body.world).slice(0, 1200) : "玩家在旧城区临时救护点";
     const systemInstruction = `你正在扮演末日生存文字游戏《末日频道：幸存者》中的角色“${character.name}”。
 性格：${character.role}
 你的固定所在地与当前背景：${character.background}
@@ -104,7 +104,7 @@ export default {
           body: JSON.stringify({
             systemInstruction: { parts: [{ text: systemInstruction }] },
             contents,
-            generationConfig: { temperature: 0.8, maxOutputTokens: 450 }
+            generationConfig: { temperature: 0.8, maxOutputTokens: 300 }
           })
         }
       );
@@ -123,7 +123,15 @@ export default {
       if (!response.ok) {
         console.error("Gemini API returned status", response.status, JSON.stringify(result.error || {}).slice(0, 1200));
         if (response.status === 429) {
-          return json({ error: "AI 请求额度暂时用完或请求过于频繁。请检查 Google AI Studio 的额度，稍后再试。" }, 502);
+          const detail = String(result.error?.message || "").slice(0, 500);
+          const rateLimit = /per.minute|requests per minute|rpm|rate.?limit/i.test(detail);
+          const exhausted = /quota|resource_exhausted|per.day|daily|limit: 0/i.test(detail);
+          const message = rateLimit
+            ? "AI 请求太密集，已触发每分钟请求限制。请等约一分钟再发送，避免连续快速发消息。"
+            : exhausted
+              ? "Gemini 项目额度可能已耗尽。减少上下文或等待额度重置未必能立即恢复；请在 Google AI Studio 的 Usage / Rate limits 页面检查具体模型和项目额度。"
+              : "Gemini 暂时拒绝了请求（429）。请在 Google AI Studio 查看 Usage / Rate limits，确认是每分钟频率限制还是项目额度耗尽。";
+          return json({ error: message, detail }, 502);
         }
         if (response.status === 400) {
           return json({ error: "AI 请求参数被服务拒绝（400）。我已记录诊断信息，正在检查模型配置。" }, 502);
