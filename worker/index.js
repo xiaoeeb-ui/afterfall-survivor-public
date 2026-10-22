@@ -95,12 +95,22 @@ export default {
           })
         }
       );
-      const result = await response.json();
+      const result = await response.json().catch(() => ({}));
       if (!response.ok) {
-        console.error("Gemini API returned status", response.status);
-        return json({ error: response.status === 429
-          ? "AI 当前请求较多或免费额度暂时用完，请稍后再试。"
-          : "AI 暂时没有回应，请稍后重试。" }, 502);
+        console.error("Gemini API returned status", response.status, JSON.stringify(result.error || {}).slice(0, 1200));
+        if (response.status === 429) {
+          return json({ error: "AI 请求额度暂时用完或请求过于频繁。请检查 Google AI Studio 的额度，稍后再试。" }, 502);
+        }
+        if (response.status === 400) {
+          return json({ error: "AI 请求参数被服务拒绝（400）。我已记录诊断信息，正在检查模型配置。" }, 502);
+        }
+        if (response.status === 401 || response.status === 403) {
+          return json({ error: "Google Gemini 拒绝了 API 密钥或项目权限（" + response.status + "）。需要检查密钥是否有效，以及 Gemini API 是否已启用。" }, 502);
+        }
+        if (response.status === 404) {
+          return json({ error: "当前 Gemini 模型不可用（404），需要调整后端模型配置。" }, 502);
+        }
+        return json({ error: "Google Gemini 服务返回错误（" + response.status + "），需要检查后端配置或服务状态。" }, 502);
       }
       const reply = (result.candidates?.[0]?.content?.parts || [])
         .map(part => part.text || "").join("").trim();
