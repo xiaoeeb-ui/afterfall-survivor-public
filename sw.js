@@ -1,4 +1,4 @@
-const CACHE_NAME = "afterfall-survivor-v10";
+const CACHE_NAME = "afterfall-survivor-v11";
 const CORE_FILES = ["./", "./index.html", "./manifest.webmanifest", "./icons/icon.svg"];
 self.addEventListener("install", event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(CORE_FILES)).then(() => self.skipWaiting()));
