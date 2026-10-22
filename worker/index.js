@@ -224,6 +224,9 @@ export default {
       const leakedInstruction = /\b(perspective|reiterate|focus on safety|internal note|analysis|system prompt|assistant)\b/i.test(reply);
       let finalReply = reply
         .replace(/^\s*[（(]?(?:角色视角|角色回复|回复内容|Lin Ye's perspective|Ash's perspective)[）)]?\s*[:：-]?\s*/i, "")
+        // The UI already displays the speaker name. Remove any leaked or duplicated
+        // character prefix, even when the model mistakenly names another character.
+        .replace(/^\s*(?:(?:林野|米拉|老周|灰鸦|小满)\s*[:：]\s*)+/u, "")
         .trim();
       const stillHasChinese = (finalReply.match(/[\u4e00-\u9fff]/g) || []).length;
       if (stillHasChinese >= 8 && !leakedInstruction && !/[。！？!?]$/.test(finalReply)) finalReply += "。";
