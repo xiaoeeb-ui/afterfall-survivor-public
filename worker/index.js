@@ -215,17 +215,34 @@ export default {
         }
       );
 
-      // Retry a transient 503 once, then try the previous stable Flash model.
-      let response = env.GEMINI_API_KEY
-        ? await requestModel("gemini-3.8-flash")
-        : new Response(JSON.stringify({ error: { message: "Gemini key is not configured" } }), { status: 503, headers: { "Content-Type": "application/json" } });
+      // Network exceptions must also enter the provider fallback path instead of aborting chat.
+      const unavailableResponse = (reason) => new Response(JSON.stringify({ error: { message: String(reason || "AI provider unavailable").slice(0, 300) } }), { status: 503, headers: { "Content-Type": "application/json" } });
+      let response;
+      try {
+        response = env.GEMINI_API_KEY
+          ? await requestModel("gemini-3.8-flash")
+          : unavailableResponse("Gemini key is not configured");
+      } catch (primaryError) {
+        console.warn("Primary Gemini request failed before receiving a response:", primaryError?.message || "network error");
+        response = unavailableResponse(primaryError?.message || "Gemini network request failed");
+      }
       if (env.GEMINI_API_KEY && response.status === 503) {
         await new Promise(resolve => setTimeout(resolve, 800));
-        response = await requestModel("gemini-3.8-flash");
+        try {
+          response = await requestModel("gemini-3.8-flash");
+        } catch (retryError) {
+          console.warn("Gemini retry failed before receiving a response:", retryError?.message || "network error");
+          response = unavailableResponse(retryError?.message || "Gemini retry failed");
+        }
       }
       if (env.GEMINI_API_KEY && (response.status === 503 || response.status === 404 || response.status === 429)) {
         console.warn("Primary Gemini model unavailable or rate-limited; trying fallback Flash model:", response.status);
-        response = await requestModel("gemini-3.6-flash");
+        try {
+          response = await requestModel("gemini-3.6-flash");
+        } catch (fallbackModelError) {
+          console.warn("Gemini fallback model request failed:", fallbackModelError?.message || "network error");
+          response = unavailableResponse(fallbackModelError?.message || "Gemini fallback model failed");
+        }
       }
       let result = await response.json().catch(() => ({}));
       if (!response.ok) {
