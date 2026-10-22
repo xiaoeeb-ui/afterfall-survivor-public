@@ -27,9 +27,11 @@
 <div class="feed" id="feed" aria-live="polite"></div>
 <div class="actions"><button class="chip" data-say="外面现在是什么情况？">询问外界</button><button class="chip" data-say="你那边还安全吗？">询问安全</button><button class="chip" data-say="我有点撑不住了，能聊聊吗？">说说近况</button><button class="chip" id="explore">查看周围</button></div>
 <form class="composer" id="form"><input id="entry" autocomplete="off" placeholder="输入消息……" maxlength="500" aria-label="输入消息"><button class="send" type="submit">发送</button></form>
-<div class="foot">离线可打开 · 对话保存在本机 · 原型版 NPC 对话</div>
+<div class="foot">离线可打开 · 对话保存在本机 · AI 实时角色聊天 · 对话保存在本机</div>
 </div>
+<script src="./api-config.js"></script>
 <script>
+const AI_API_URL=(window.AFTERFALL_AI_API_URL||"").replace(/\\/$/,"");
 const cast={
 lin:{name:"林野",icon:"🧭",intro:"频道接通了？我是林野，正在旧城区外围。先说重点，我的电量不多。",lines:["我刚绕过东侧街口。别走主路，那里有动静。","先别急着冒险。把你能确认的情况说清楚，我们再决定下一步。","收到。我会留意附近的信号，有新消息再告诉你。"]},
 mira:{name:"米拉",icon:"🩹",intro:"嗨，我在。这里暂时安全一点。你还好吗？别勉强自己，慢慢说。",lines:["水和休息都很重要。能坐下来喘口气，就先别急着赶路。","我明白，很多事一下子压过来会让人很累。我们一件一件处理。","如果你受伤了，先告诉我伤口位置和严重程度。"]},
@@ -43,12 +45,57 @@ const stats=JSON.parse(localStorage.getItem("afterfall-stats")||"null");if(stats
 function drawStats(){document.getElementById("hp").textContent=hp+" / 100";document.getElementById("food").textContent=food+" 份"}
 function add(who,text,kind=""){const box=document.createElement("div");box.className="msg "+kind;const n=document.createElement("div");n.className="name";n.textContent=who;const b=document.createElement("div");b.className="body";b.textContent=text;box.append(n,b);document.getElementById("feed").append(box);document.getElementById("feed").scrollTop=999999}
 function init(){document.getElementById("feed").innerHTML="";if(!history[active])history[active]=[{who:cast[active].name,text:cast[active].intro,kind:""}];history[active].forEach(m=>add(m.who,m.text,m.kind));document.getElementById("channelTitle").textContent="# "+cast[active].name+" 的私聊";document.querySelectorAll(".person").forEach(b=>b.classList.toggle("active",b.dataset.id===active));save()}
-function replyTo(t){const s=t.toLowerCase();let r;if(/安全|危险|外面|情况|哪里|路线|去哪/.test(s))r=cast[active].lines[0];else if(/累|难受|撑不住|痛苦|害怕|怕|聊聊|心情/.test(s))r=cast[active].lines[1];else if(/谢谢|收到|好吧|好的|明白/.test(s))r=cast[active].lines[2];else if(/食物|水|补给|资源|吃/.test(s))r=active==="mira"?"先检查饮水和食物还剩多少，按紧急程度分配。"+cast[active].lines[0]: "先盘点补给，不要一次用光。"+cast[active].lines[1];else if(/你是谁|名字/.test(s))r="我是"+cast[active].name+"。"+cast[active].intro;else r=cast[active].lines[Math.floor(Math.random()*cast[active].lines.length)];return r}
-function send(t){t=t.trim();if(!t)return;history[active]=history[active]||[];history[active].push({who:"你",text:t,kind:"me"});add("你",t,"me");const r=replyTo(t);history[active].push({who:cast[active].name,text:r,kind:""});setTimeout(()=>{if(active===selectedAtSend){add(cast[active].name,r);save()}},350);save()}
-let selectedAtSend="lin";
+async function send(t){
+  t=String(t||"").trim();
+  if(!t)return;
+  const characterId=active;
+  const character=cast[characterId];
+  history[characterId]=history[characterId]||[];
+  history[characterId].push({who:"你",text:t,kind:"me"});
+  if(active===characterId)add("你",t,"me");
+  save();
+  if(!AI_API_URL){
+    const msg="AI 接口还未连接。后端部署完成后，需要把 Cloudflare Worker 的网址填入 api-config.js。";
+    history[characterId].push({who:"系统",text:msg,kind:"system"});
+    if(active===characterId)add("系统",msg,"system");
+    save();
+    return;
+  }
+  const sendButton=document.querySelector(".send");
+  const entry=document.getElementById("entry");
+  sendButton.disabled=true;
+  sendButton.textContent="等待…";
+  try{
+    const prior=history[characterId].slice(0,-1).filter(m=>m.who!=="系统事件"&&m.kind!=="system").slice(-16).map(m=>({
+      role:m.who==="你"?"user":"model",
+      content:m.text
+    }));
+    const response=await fetch(AI_API_URL+"/api/chat",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({characterId,message:t,history:prior})
+    });
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok)throw new Error(data.error||"AI 请求失败，请稍后重试。");
+    const reply=String(data.reply||"").trim();
+    if(!reply)throw new Error("AI 没有返回内容，请再试一次。");
+    history[characterId].push({who:character.name,text:reply,kind:""});
+    if(active===characterId)add(character.name,reply);
+    save();
+  }catch(error){
+    const message=error&&error.message?error.message:"网络连接失败，请检查网络后重试。";
+    history[characterId].push({who:"系统提示",text:message,kind:"system"});
+    if(active===characterId)add("系统提示",message,"system");
+    save();
+  }finally{
+    sendButton.disabled=false;
+    sendButton.textContent="发送";
+    entry.focus();
+  }
+}
 document.querySelectorAll(".person").forEach(b=>b.addEventListener("click",()=>{active=b.dataset.id;init()}));
-document.getElementById("form").addEventListener("submit",e=>{e.preventDefault();const v=document.getElementById("entry").value;selectedAtSend=active;send(v);document.getElementById("entry").value=""});
-document.querySelectorAll("[data-say]").forEach(b=>b.addEventListener("click",()=>{selectedAtSend=active;send(b.dataset.say)}));
+document.getElementById("form").addEventListener("submit",e=>{e.preventDefault();const input=document.getElementById("entry");const v=input.value;input.value="";send(v);});
+document.querySelectorAll("[data-say]").forEach(b=>b.addEventListener("click",()=>send(b.dataset.say)));
 document.getElementById("explore").addEventListener("click",()=>{const events=["你在附近发现一处废弃便利店，门口有新鲜脚印。","远处传来三声金属撞击，无法确认来源。","你找到半瓶未开封的水。体力恢复 4 点。","无线电捕捉到一段断续的求救信号。"];const e=events[Math.floor(Math.random()*events.length)];if(e.includes("体力恢复"))hp=Math.min(100,hp+4);if(e.includes("水。"))food+=1;drawStats();history[active]=history[active]||[];history[active].push({who:"系统事件",text:e,kind:"system"});add("系统事件",e,"system");save()});
 drawStats();init();
 if("serviceWorker" in navigator && location.protocol!=="file:"){window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}))}
