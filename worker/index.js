@@ -115,8 +115,8 @@ export default {
         await new Promise(resolve => setTimeout(resolve, 800));
         response = await requestModel("gemini-3.8-flash");
       }
-      if (response.status === 503 || response.status === 404) {
-        console.warn("Primary Gemini model unavailable, trying fallback Flash model:", response.status);
+      if (response.status === 503 || response.status === 404 || response.status === 429) {
+        console.warn("Primary Gemini model unavailable or rate-limited; trying fallback Flash model:", response.status);
         response = await requestModel("gemini-3.6-flash");
       }
       const result = await response.json().catch(() => ({}));
