@@ -357,16 +357,20 @@ export default {
       const repeatsReply = recentCharacterReplies.some(old => old.trim() && old.trim() === finalReply.trim());
       const casualInvite = /聊聊天|聊聊|随便聊|嘻嘻|哈哈|抱着睡|抱抱|抱我|陪我睡|陪我一会儿|陪我一会|陪我聊/.test(message);
       const genericGreetingMismatch = casualInvite && /好久不见|你好吗[，,！!？? ]*最近怎么样|都这些天你一个人过来了|你是什么意思|忘了睡觉了/.test(finalReply);
-      const contextFailure = /你刚刚(对我)?说(了|的是|什么)|你说[“「].{0,100}[”」]吗|你说了[“「].{0,100}[”」]|我接着你说|你嚷嚷着|大家把暂时的不适|你在说我呢|你刚刚说了什么事儿|玩家.{0,80}(?:想开玩笑|正式来找到我|这轮真正想表达|说[：:]|希望|正在)|你回复[：:]|玩家说[：:]|先判断玩家|严禁用|最多两句|你是公共频道里另一位幸存者|对你回应|角色视角|玩家这轮真正想表达|你回复[“「]|你睡不着吗哈哈/.test(finalReply);
+      const contextFailure = /你刚刚(对我)?说(了|的是|什么)|你说[“「].{0,100}[”」]吗|你说了[“「].{0,100}[”」]|我接着你说|你嚷嚷着|大家把暂时的不适|你在说我呢|你刚刚说了什么事儿|玩家.{0,80}(?:想开玩笑|正式来找到我|这轮真正想表达|说[：:]|希望|正在)|你回复[：:]|玩家说[：:]|先判断玩家|严禁用|最多两句|你是公共频道里另一位幸存者|对你回应|角色视角|玩家这轮真正想表达|你回复[“「]|你睡不着吗哈哈|previous responses|system prompt|bugs like repeating|complaint is not defined|undefined|internal note/i.test(finalReply);
       const echoesPlayer = message.length >= 5 && finalReply.includes(message.slice(0, Math.min(16, message.length)));
-      const complaint = /答非所问|说话牛头不对马嘴|牛头不对马嘴|没接上|没听懂|说不完整|说话说不完整|角色还是|问题没解决|不对劲|不对啊|不是这个意思|你没听|你没接/.test(message);
+      const complaint = /答非所问|说话牛头不对马嘴|牛头不对马嘴|没接上|没听懂|说不完整|说话说不完整|角色还是|问题没解决|不对劲|不对啊|不是这个意思|你没听|你没接|什么玩意儿|你这说的什么/.test(message);
       const casual = /聊聊天|聊聊|随便聊|嘻嘻|哈哈|陪我|孤单|无聊|睡不着|抱抱/.test(message);
-      if (!finalReply || leakedInstruction || stillHasChinese < 2 || contextFailure || echoesPlayer || repeatsReply || genericGreetingMismatch) {
-        const intimate = /抱着睡|抱抱|抱我|陪我睡|陪我一会儿|陪我一会|睡在一起|挤在一起|四个人|大家一起睡/.test(message);
-        const playfulChat = /聊聊天|聊聊|随便聊|嘻嘻|哈哈/.test(message);
-        const askingOthers = /他们人呢|他们呢|人呢|大家去哪了|大家在哪|其他人呢|还有谁|都去哪了|你们人呢|他们在哪|他们哪里/.test(message);
-        const sayingSleep = /我要睡觉了|我去睡了|我睡觉了|准备睡了|要睡了|睡觉呢|我困了|困死了/.test(message);
-        const groupSleep = /四个人|大家一起|我们一起|睡在一起|挤在一起|抱团|一个被窝|一张床/.test(message);
+      const intimate = /抱着睡|抱抱|抱我|陪我睡|陪我一会儿|陪我一会|睡在一起|挤在一起|四个人|大家一起睡/.test(message);
+      const playfulChat = /聊聊天|聊聊|随便聊|嘻嘻|哈哈/.test(message);
+      const askingOthers = /他们人呢|他们呢|人呢|大家去哪了|大家在哪|其他人呢|还有谁|都去哪了|你们人呢|他们在哪|他们哪里/.test(message);
+      const sayingSleep = /我要睡觉了|我去睡了|我睡觉了|准备睡了|要睡了|睡觉呢|我困了|困死了|睡觉吧|晚安/.test(message);
+      const groupSleep = /四个人|大家一起|我们一起|睡在一起|挤在一起|抱团|一个被窝|一张床/.test(message);
+      const wantsCompany = /谁来跟我待一块|来跟我待一块|来陪我|陪我待着|陪我一会|陪我睡|待在我旁边|来我这|来我这里|陪我聊/.test(message);
+      const confused = /^(\?|？|什么玩意儿|呃+|嗯？|啊？|啥玩意儿|不是吧)[！!。？?…\s]*$/.test(message);
+      const shortAgreement = /^(是的|对|嗯|嗯嗯|没错|是啊|对啊|也是)[！!。？?…\s]*$/.test(message);
+      const genericNonAnswer = /^(嗯？怎么啦[？?！!。]*|我在呢[，,。！! ]*慢慢说[。！!]*|我在我在[，,。！! ]*怎么啦[？?！!。]*|我听着[。！!]*|在[。！!]*|嗯，我听着[。！!]*|嗯，听见了[。！!]*|行，我听着呢[。！!]*)$/u.test(finalReply);
+      if (!finalReply || leakedInstruction || stillHasChinese < 2 || contextFailure || echoesPlayer || repeatsReply || genericGreetingMismatch || genericNonAnswer || (wantsCompany && /我在我在|嗯？怎么啦|我在呢，慢慢说/.test(finalReply)) || (sayingSleep && /嗯？怎么啦|我在我在|我在呢，慢慢说/.test(finalReply)) || (shortAgreement && /嗯？怎么啦|我在我在|我在呢，慢慢说/.test(finalReply))) {
         const fallbackByCharacter = {
           lin: {
             others: "都还在各自的位置。米拉在学校体育馆的医疗区，老周在南边修理厂，我在东侧高架附近；灰鸦和小满那边暂时没听到新的情况。",
