@@ -119,8 +119,61 @@ export default {
         console.warn("Primary Gemini model unavailable or rate-limited; trying fallback Flash model:", response.status);
         response = await requestModel("gemini-3.6-flash");
       }
-      const result = await response.json().catch(() => ({}));
+      let result = await response.json().catch(() => ({}));
       if (!response.ok) {
+        // Fall through to independent providers when Gemini is rate-limited or unavailable.
+        const messages = [
+          { role: "system", content: systemInstruction },
+          ...contents.map(item => ({
+            role: item.role === "model" ? "assistant" : "user",
+            content: (item.parts || []).map(part => part.text || "").join("\\n")
+          }))
+        ];
+        const providers = [
+          env.GROQ_API_KEY ? {
+            name: "Groq",
+            url: "https://api.groq.com/openai/v1/chat/completions",
+            key: env.GROQ_API_KEY,
+            model: env.GROQ_MODEL || "openai/gpt-oss-20b"
+          } : null,
+          env.OPENROUTER_API_KEY ? {
+            name: "OpenRouter",
+            url: "https://openrouter.ai/api/v1/chat/completions",
+            key: env.OPENROUTER_API_KEY,
+            model: env.OPENROUTER_MODEL || "qwen/qwen3.8-27b:free"
+          } : null
+        ].filter(Boolean);
+        for (const provider of providers) {
+          try {
+            const altResponse = await fetch(provider.url, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + provider.key,
+                ...(provider.name === "OpenRouter" ? { "HTTP-Referer": "https://xiaoeeb-ui.github.io/afterfall-survivor-public/", "X-Title": "末日频道：幸存者" } : {})
+              },
+              body: JSON.stringify({
+                model: provider.model,
+                messages,
+                temperature: 0.8,
+                max_tokens: 300
+              })
+            });
+            const altResult = await altResponse.json().catch(() => ({}));
+            if (altResponse.ok) {
+              const altText = String(altResult.choices?.[0]?.message?.content || "").trim();
+              if (altText) {
+                console.log("AI fallback succeeded:", provider.name);
+                result = { candidates: [{ content: { parts: [{ text: altText }] } }] };
+                break;
+              }
+            }
+            console.warn("AI fallback provider failed:", provider.name, altResponse.status, JSON.stringify(altResult.error || {}).slice(0, 500));
+          } catch (fallbackError) {
+            console.warn("AI fallback provider request failed:", provider.name, fallbackError?.message || "unknown");
+          }
+        }
+        if (!result.candidates?.[0]?.content?.parts?.some(part => part.text)) {
         console.error("Gemini API returned status", response.status, JSON.stringify(result.error || {}).slice(0, 1200));
         if (response.status === 429) {
           const detail = String(result.error?.message || "").slice(0, 500);
@@ -142,7 +195,8 @@ export default {
         if (response.status === 404) {
           return json({ error: "当前 Gemini 模型不可用（404），需要调整后端模型配置。" }, 502);
         }
-        return json({ error: "Google Gemini 服务返回错误（" + response.status + "），需要检查后端配置或服务状态。" }, 502);
+        return json({ error: "Google Gemini 服务返回错误（" + response.status + "），且备用 AI 服务也不可用或尚未配置。请检查备用服务 API 密钥和免费额度。" }, 502);
+        }
       }
       const reply = (result.candidates?.[0]?.content?.parts || [])
         .map(part => part.text || "").join("").trim();
