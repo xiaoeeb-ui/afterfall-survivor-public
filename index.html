@@ -64,19 +64,22 @@ function setMode(next){mode=next;document.getElementById("groupTab").classList.t
 function remember(id,text){state.memories[id].push(text.slice(0,160));state.memories[id]=state.memories[id].slice(-12)}
 async function askCharacter(id,userMessage,historyArr){const history=(historyArr||[]).slice(-12).map(m=>({who:m.who==="你"?"玩家":m.who,content:String(m.text||"")}));const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),20000);let response;try{response=await fetch(API+"/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},signal:controller.signal,body:JSON.stringify({characterId:id,message:userMessage,history,relationship:state.trust[id],memory:state.memories[id],world:{playerLocation:"旧城区外围临时救护点（玩家独自在此）",communication:"所有幸存者通过无线电公共频道远程交流，彼此不在同一地点",day:state.day,time:String(state.hour).padStart(2,"0")+":00",health:state.hp,stamina:state.stamina,food:state.food,water:state.water,weather:state.weather,condition:state.condition,lastEvent:state.lastEvent,inventory:state.inventory,morale:state.morale}})})}catch(err){if(err&&err.name==="AbortError")throw new Error("角色回复超时（20 秒），请再试一次。");throw new Error("连接 AI 失败，请检查网络后重试。")}finally{clearTimeout(timer)}const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.error||"AI 请求失败");return String(data.reply||"").replace(/^\\s*(?:(?:林野|米拉|老周|灰鸦|小满)\\s*[:：]\\s*)+/u,"").trim()}
 function chooseResponders(text){
-  if(/林野/.test(text))return ["lin"];
-  if(/米拉/.test(text))return ["mira"];
-  if(/老周/.test(text))return ["oldzhou"];
-  if(/灰鸦/.test(text))return ["ash"];
-  if(/小满/.test(text))return ["xiaoman"];
-  if(/呜呜|好无情|你们都不理|没人理我|开玩笑|哈哈|笑死|真的假的|骗人/.test(text))return ["xiaoman"];
-  if(/难过|委屈|害怕|孤单|撑不住|心里难受|想哭|安慰/.test(text))return ["mira"];
-  if(/药|伤|水|食物|身体|累|病|休息|吃饭|饿|渴/.test(text))return ["mira"];
-  if(/修|电|机器|燃料|物资|工具|发电机|零件/.test(text))return ["oldzhou"];
-  if(/信号|广播|坐标|频道|频率|听见|听到声音/.test(text))return ["ash"];
-  if(/外面|侦察|危险|脚印|探索|路线|高架|下雨|雨势/.test(text))return ["lin"];
-  const ids=["lin","mira","oldzhou","ash","xiaoman"];
-  return [ids[Math.floor(Math.random()*ids.length)]];
+  const t=String(text||"").trim();
+  // Explicitly addressed people and established topics take priority over generic keyword matches.
+  if(/林野|高架桥那位|高架路那位/.test(t))return ["lin"];
+  if(/米拉/.test(t))return ["mira"];
+  if(/老周/.test(t))return ["oldzhou"];
+  if(/灰鸦/.test(t))return ["ash"];
+  if(/小满/.test(t))return ["xiaoman"];
+  if(/光头强/.test(t))return ["xiaoman"];
+  if(/绷带|药|伤口|病人|医护/.test(t))return ["mira"];
+  if(/修|电|机器|燃料|工具|发电机|零件|废金属|电池/.test(t))return ["oldzhou"];
+  if(/信号|广播|坐标|频率|无线电|听见|听到声音/.test(t))return ["ash"];
+  if(/外面|侦察|危险|脚印|探索|路线|高架|下雨|雨势/.test(t))return ["lin"];
+  if(/孤单|孤独|没安全感|抱着睡|抱团取暖|陪我睡|睡觉|好无聊|无聊|陪我聊|聊聊天|来我这里|来我这|玩玩|哈喽|你好|哈哈|嘻嘻|呜呜|委屈|难过|害怕|想哭|安慰|好无情/.test(t))return ["mira"];
+  // Casual, context-free lines should not be assigned to a random specialist every time.
+  if(/^(哦+|嗯+|呃+|=_=|啥玩意儿|不是吧|天呢|啊+|为啥|为什么|哪里闷了|仔细想想|听不懂思密达)[！!。？?…]*$/.test(t))return ["mira"];
+  return ["xiaoman"];
 }
 function send(text){text=String(text||"").trim();if(!text||mode==="world")return;const sendMode=mode,sendActive=active,key=sendMode==="group"?"group":"private-"+sendActive;state.chats[key]=state.chats[key]||[];const chat=state.chats[key];const stamp=String(state.hour).padStart(2,"0")+":00";const userMessage={who:"你",text,kind:"me",time:stamp};chat.push(userMessage);addMessage("你",text,"me",stamp);if(sendMode==="group")publishRoomMessage("幸存者-"+clientId.slice(-4),text,"remote",stamp);if(sendMode==="private"){state.trust[sendActive]=Math.max(-10,Math.min(10,state.trust[sendActive]+(/谢谢|相信你|抱歉|辛苦|合作/.test(text)?1:/骗子|闭嘴|滚|不信你/.test(text)?-2:0)));}persist();renderState();const responders=sendMode==="group"?chooseResponders(text):[sendActive];const id=responders[0];const history=chat.slice(0,-1).slice(-10).map(m=>({...m}));const feedKey=key;askCharacter(id,text,history).then(reply=>{if(!reply)throw new Error("角色没有生成完整回复，请再发一次。");const who=cast[id].name;const replyTime=String(state.hour).padStart(2,"0")+":00";state.chats[feedKey]=state.chats[feedKey]||[];state.chats[feedKey].push({who,text:reply,time:replyTime});if(sendMode==="group")publishRoomMessage(who,reply,"",replyTime);remember(id,"玩家说："+text+"；"+who+"回应："+reply);persist();if(chatKey()===feedKey)addMessage(who,reply,"",replyTime);renderState()}).catch(err=>{const msg=err&&err.message?err.message:"连接失败，请稍后重试。";state.chats[feedKey]=state.chats[feedKey]||[];state.chats[feedKey].push({who:"系统提示",text:msg,kind:"system"});persist();if(chatKey()===feedKey)addMessage("系统提示",msg,"system");});}
 document.getElementById("groupTab").addEventListener("click",()=>setMode("group"));document.getElementById("privateTab").addEventListener("click",()=>setMode("private"));document.getElementById("worldTab").addEventListener("click",()=>setMode("world"));document.querySelectorAll(".person").forEach(b=>b.addEventListener("click",()=>{active=b.dataset.id;document.querySelectorAll(".person").forEach(x=>x.classList.toggle("active",x===b));setMode("private")}));document.getElementById("form").addEventListener("submit",e=>{e.preventDefault();const input=document.getElementById("entry");const v=input.value.trim();if(!v||mode==="world")return;input.value="";send(v)});document.querySelectorAll("[data-say]").forEach(b=>b.addEventListener("click",()=>send(b.dataset.say)));
