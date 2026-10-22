@@ -1,0 +1,20 @@
+{
+  "name": "末日频道：幸存者",
+  "short_name": "末日频道",
+  "description": "沉浸式末日生存聊天文字游戏",
+  "lang": "zh-CN",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0c1117",
+  "theme_color": "#111820",
+  "icons": [
+    {
+      "src": "./icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
