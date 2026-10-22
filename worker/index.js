@@ -344,7 +344,7 @@ export default {
       if (!reply) return json({ error: "AI 没有生成回复，请再试一次。" }, 502);
       // Guard against leaked English planning notes or perspective labels.
       const chineseCount = (reply.match(/[\u4e00-\u9fff]/g) || []).length;
-      const leakedInstruction = /\b(perspective|reiterate|focus on safety|internal note|analysis|system prompt|assistant)\b/i.test(reply);
+      const leakedInstruction = /\b(perspective|reiterate|focus on safety|internal note|analysis|system prompt|assistant|previous responses|system previous|bugs like repeating|complaint is not defined|player wants|the player|you should respond|stay in character|as an ai)\b/i.test(reply) || /(?:system prompt|previous responses|bugs like repeating|complaint is not defined|玩家想表达|你应该回复|角色视角|幕后指令)/i.test(reply);
       let finalReply = reply
         .replace(/^\s*[（(]?(?:角色视角|角色回复|回复内容|Lin Ye's perspective|Ash's perspective)[）)]?\s*[:：-]?\s*/i, "")
         // The UI already displays the speaker name. Remove any leaked or duplicated
@@ -366,56 +366,74 @@ export default {
       const askingOthers = /他们人呢|他们呢|人呢|大家去哪了|大家在哪|其他人呢|还有谁|都去哪了|你们人呢|他们在哪|他们哪里/.test(message);
       const sayingSleep = /我要睡觉了|我去睡了|我睡觉了|准备睡了|要睡了|睡觉呢|我困了|困死了|睡觉吧|晚安/.test(message);
       const groupSleep = /四个人|大家一起|我们一起|睡在一起|挤在一起|抱团|一个被窝|一张床/.test(message);
-      const wantsCompany = /谁来跟我待一块|来跟我待一块|来陪我|陪我待着|陪我一会|陪我睡|待在我旁边|来我这|来我这里|陪我聊/.test(message);
-      const confused = /^(\?|？|什么玩意儿|呃+|嗯？|啊？|啥玩意儿|不是吧)[！!。？?…\s]*$/.test(message);
-      const shortAgreement = /^(是的|对|嗯|嗯嗯|没错|是啊|对啊|也是)[！!。？?…\s]*$/.test(message);
-      const genericNonAnswer = /^(嗯？怎么啦[？?！!。]*|我在呢[，,。！! ]*慢慢说[。！!]*|我在我在[，,。！! ]*怎么啦[？?！!。]*|我听着[。！!]*|在[。！!]*|嗯，我听着[。！!]*|嗯，听见了[。！!]*|行，我听着呢[。！!]*)$/u.test(finalReply);
+      const wantsCompany = /谁来跟我待一块|来跟我待一块|来陪我|陪我待着|陪我一会|陪我睡|待在我旁边|来我这|来我这里|陪我聊|不行吗|陪陪我|留下来/.test(message);
+      const confused = /^(?:\\?|？|什么玩意儿|呃+|嗯？|啊？|啥玩意儿|不是吧|怎么回事)[！!。？?…\\s]*$/.test(message);
+      const shortAgreement = /^(?:是的|对|嗯|嗯嗯|没错|是啊|对啊|也是)[！!。？?…\\s]*$/.test(message);
+      const previousPlayerMessage = prior.slice().reverse().find(item => item && /^(玩家|你)$/.test(String(item.who || "")));
+      const previousPlayerText = String(previousPlayerMessage?.content || "").trim();
+      const genericNonAnswer = /^(?:嗯？怎么啦[？?！!。]*|我在呢[，,。！! ]*慢慢说[。！!]*|我在我在[，,。！! ]*怎么啦[？?！!。]*|我听着[。！!]*|在[。！!]*|嗯，我听着[。！!]*|嗯，听见了[。！!]*|行，我听着呢[。！!]*)$/u.test(finalReply);
       if (!finalReply || leakedInstruction || stillHasChinese < 2 || contextFailure || echoesPlayer || repeatsReply || genericGreetingMismatch || genericNonAnswer || (wantsCompany && /我在我在|嗯？怎么啦|我在呢，慢慢说/.test(finalReply)) || (sayingSleep && /嗯？怎么啦|我在我在|我在呢，慢慢说/.test(finalReply)) || (shortAgreement && /嗯？怎么啦|我在我在|我在呢，慢慢说/.test(finalReply))) {
         const fallbackByCharacter = {
           lin: {
             others: "都还在各自的位置。米拉在学校体育馆的医疗区，老周在南边修理厂，我在东侧高架附近；灰鸦和小满那边暂时没听到新的情况。",
-            sleep: "那就去睡吧，别硬撑。频道我先留着；明天醒了再说也来得及。",
-            groupSleep: "……听起来倒挺暖和。可惜现在隔着电台，各自守着各自的地方。等真有机会碰面，再找个不漏雨的屋顶吧。"
+            sleep: "那就睡吧，别硬撑。我会把频道音量留着；明天醒了再说。",
+            groupSleep: "听着挺好。只是我们还隔着无线电，真要会合得先找安全路线和能过夜的地方。",
+            company: "我听得见你，但现在赶不过去。我在东侧高架，离你有段距离。今晚我可以留在频道里陪你说几句。",
+            confused: "刚才那句没说清楚？我换个说法。你是想让我们有人陪着你，不只是隔着电台回话，对吧？"
           },
           mira: {
-            others: "他们都还在各自的地方呢：林野在东侧高架附近，老周守着修理厂，灰鸦在城西，小满在地铁入口。我没收到他们出事的消息，只是不知道他们这会儿是不是都忙着。",
-            sleep: "那你就安心睡吧，今天先到这儿。要是还想说一句再睡也行，我听着，不催你。",
-            groupSleep: "哎，想想都觉得暖和。四个人挤在一块儿，外头下着雨，至少不用各自对着一台冷冰冰的电台了。可惜眼下大家还分散着……不过这念头挺好。"
+            others: "他们都还在各自的地方呢：林野在东侧高架附近，老周守着修理厂，灰鸦在城西，小满在地铁入口。我没收到他们出事的消息。",
+            sleep: "好，那就休息吧。今天不用再勉强自己找话题了。晚安，醒了想聊再来叫我。",
+            groupSleep: "我也觉得那样会暖和很多。大家不用各自守着一间冷屋子，光是能听见彼此呼吸就安心些。可惜现在还分散着，只能先在频道里陪你。",
+            company: "不是不愿意呀。只是我们现在分散在不同地方，我没法一下子赶到你身边。不过我可以先陪你聊一会儿，不急着结束。",
+            confused: "我刚才是不是没接好你的话？你是想有人真的留下来陪你，对不对？我听明白了。"
           },
           oldzhou: {
             others: "没都挤一块儿。林野在高架那边，我在修理厂，米拉在学校体育馆，灰鸦在城西，小满守着地铁口。都还隔着老远呢。",
-            sleep: "去吧，睡觉比跟这破电台耗着强。把水放手边，别半夜起来摸黑找。",
-            groupSleep: "哈哈，四个人挤一屋？先得找个不漏雨、不塌顶的地方。真能凑齐了，至少晚上不用轮流对着电台发呆。"
+            sleep: "去睡吧，别跟电台耗到天亮。水放手边，别半夜摸黑找。晚安。",
+            groupSleep: "四个人挤一屋？先得找个不漏雨、不塌顶的地方。真能凑齐了，至少晚上不用各自对着电台发呆。",
+            company: "我倒不是不想去，可我还在南边修理厂，腿又不是车轮子。眼下只能在频道里陪你唠会儿，等有路再说。",
+            confused: "怎么，刚才没听明白？我说的是现在大家都分散着，没法立刻赶到你那儿。"
           },
           ash: {
             others: "还在各自的坐标上。林野在东侧高架，米拉在学校，老周在修理厂，小满在地铁口。我暂时没听见谁失联。",
-            sleep: "那就睡。今晚没必要硬撑着清醒……频道里的声音还在，先让脑子歇一会儿。",
-            groupSleep: "四个人睡在一处……听起来像很久以前的普通日子。眼下我们隔着几公里，只能在电台里想一想。"
+            sleep: "去睡。今晚不用强撑着清醒……频道还开着，先让脑子歇会儿。",
+            groupSleep: "四个人睡在一处，听起来像很久以前的普通日子。眼下我们隔着几公里，只能先在频道里待一会儿。",
+            company: "我没法突然出现在你那边。我在城西，路况也不清楚……但我还听着，暂时不切断频道。",
+            confused: "你是在问我能不能过去？不能立刻过去。不是不愿意，是我们现在隔得太远。"
           },
           xiaoman: {
             others: "应该都还在原来的地方吧！林野在高架附近，米拉在学校体育馆，老周在修理厂，灰鸦在城西。我这边还在地铁口，暂时没听说谁不见了。",
-            sleep: "噢，你真准备睡啦？那我不吵你了。晚安——明天要是还在频道里，记得告诉我你睡得怎么样。",
-            groupSleep: "那画面也太挤了吧，哈哈！不过要是能找个安全又不漏雨的地方，大家挨着休息一晚，好像真的会安心不少。现在只能先隔着电台想想啦。"
+            sleep: "好嘛，那我不吵你了。晚安！等你醒了再告诉我有没有睡好。",
+            groupSleep: "那样肯定暖和多了，挤一点也没关系吧。可惜我们现在离得远，只能先隔着电台想想。",
+            company: "不是不行啦，我也愿意陪你。只是我还在地铁口，没办法马上跑到你那边；我先留在频道里，陪你说会儿话。",
+            confused: "哎，我是不是又答非所问了？你想要的是有人陪着，不是我只会回一句“怎么啦”，对吧。"
           }
         };
         const selectedFallback = fallbackByCharacter[body.characterId] || fallbackByCharacter.mira;
         let fallbackReply;
         if (complaint) {
-          fallbackReply = ({lin:"……刚才那句确实没接上。算我的，我重新听着。",mira:"哎，刚才我没接住你的话。重来，这回不把话题岔开了。",oldzhou:"行，刚才聊岔了。咱重来，这回不瞎接话。",ash:"嗯，刚才那句不对。我听着，这回接你的话说。",xiaoman:"啊，我刚刚说跑偏了。再来一次，这回认真听。" })[body.characterId];
+          fallbackReply = ({lin:"刚才我没接好。你重新说，我这次会按你的意思回。",mira:"抱歉，刚才我没认真接住你的话。我们重来。",oldzhou:"行，刚才我说岔了。这回不拿套话糊弄你。",ash:"刚才那句不对。我重新听。",xiaoman:"哎，我刚才又说重复了。对不起，我认真回答你。" })[body.characterId];
         } else if (askingOthers) {
           fallbackReply = selectedFallback.others;
+        } else if (wantsCompany) {
+          fallbackReply = selectedFallback.company;
+        } else if (confused) {
+          fallbackReply = selectedFallback.confused;
+        } else if (shortAgreement && /一起睡|睡在一起|挤在一起|一个被窝|四个人|大家一起/.test(previousPlayerText)) {
+          fallbackReply = selectedFallback.groupSleep;
         } else if (groupSleep) {
           fallbackReply = selectedFallback.groupSleep;
         } else if (sayingSleep) {
           fallbackReply = selectedFallback.sleep;
         } else if (intimate) {
-          fallbackReply = ({lin:"要真能把被子分你一半就好了。现在只能隔着电台陪你聊会儿。",mira:"真想给你留一床暖和被子。现在隔着电台抱不到，不过睡前我可以再陪你说会儿话。",oldzhou:"抱是抱不到，电台又不是长手的。行了，我先陪你唠会儿。",ash:"隔着这台破电台，手伸再长也够不着。……不过我暂时不关频道。",xiaoman:"要是能把被窝分你一半就好啦。现在我陪你说会儿话。" })[body.characterId];
+          fallbackReply = selectedFallback.company;
         } else if (playfulChat) {
-          fallbackReply = ({lin:"行啊，难得不用汇报路线。你想聊点什么？",mira:"好呀，我刚忙完一小阵，正好歇口气。你今天有没有遇到什么小事？",oldzhou:"聊呗，难得这破收音机没先给我添堵。",ash:"嗯，今晚先不谈正事。你说，我听着。",xiaoman:"好呀！我正好想歇会儿，咱们聊点没用但开心的。" })[body.characterId];
+          fallbackReply = ({lin:"行啊，难得不用汇报路线。今天有什么小事想说？",mira:"好呀，我刚忙完一小阵，正好歇口气。你想聊点轻松的，还是我先讲讲这边的糗事？",oldzhou:"聊呗，难得这破收音机没先给我添堵。",ash:"嗯，今晚先不谈正事。外头总算安静了几分钟。",xiaoman:"好呀！我正好想歇会儿。刚才我在地铁口听见一只猫叫，差点以为又有东西下来了。" })[body.characterId];
         } else {
-          fallbackReply = ({lin:"嗯，我听着。",mira:"嗯，听见了。",oldzhou:"行，我听着呢。",ash:"在。",xiaoman:"嗯？怎么啦？"})[body.characterId];
+          fallbackReply = ({lin:"嗯，我听见了。",mira:"嗯，听见了。",oldzhou:"行，我听着呢。",ash:"听到了。",xiaoman:"嗯，我听见啦。" })[body.characterId];
         }
-        finalReply = fallbackReply || "我听着。";
+        finalReply = fallbackReply || "我听见了。";
       }
       if (env.GAME_ROOM) {
         try {
