@@ -142,16 +142,17 @@ export default {
       // Guard against leaked English planning notes or perspective labels.
       const chineseCount = (reply.match(/[\u4e00-\u9fff]/g) || []).length;
       const leakedInstruction = /\b(perspective|reiterate|focus on safety|internal note|analysis|system prompt|assistant)\b/i.test(reply);
+      const endsCleanly = /[。！？!?]$/.test(reply) && !/[，、：；…—]$/.test(reply);
       let finalReply = reply;
-      if (chineseCount < 8 || leakedInstruction) {
+      if (chineseCount < 8 || leakedInstruction || !endsCleanly) {
         const safeReplies = {
-          lin: "收到。我在东侧高架附近，先确认周围安全再行动。你那边保持警惕，有新情况及时用电台告诉我。",
-          mira: "收到，先别着急，确保自己待在相对安全的地方。你那边如果有受伤或不舒服的情况，尽快告诉我。",
-          oldzhou: "听见了。先把眼前的安全和补给顾好，别冒冒失失往危险地方钻。有需要修的东西就跟我说。",
-          ash: "信号收到了。别急着下结论，附近的动静未必像表面那么简单。留意频道，我还会继续监听。",
-          xiaoman: "喂，收到啦！我这边还在地铁站西口附近，你先别乱跑，听见什么异常就赶紧在频道里说一声。"
+          lin: "收到。东侧高架这会儿雨很大，我不会贸然往上走，先找个能遮雨的位置观察。你先待在救护点，等我确认路况再用电台联系你。",
+          mira: "听到了，雨天路滑，先别急着外出。你待在救护点里注意保暖，有受伤或缺水的情况就马上告诉我。",
+          oldzhou: "这雨下得真不是时候。高架那边先别乱闯，等雨势小些再说；我先把维修厂的设备护好。",
+          ash: "收到。大雨会盖住不少声音，也会让路况更危险。先别急着行动，我继续监听频道，有新消息再通知你。",
+          xiaoman: "哎，这种天气还往高架跑也太冒险了。你先别动，我在地铁站入口这边躲雨，听到什么动静会马上告诉你。"
         };
-        finalReply = safeReplies[body.characterId] || "收到，先确认周围安全，有新情况再通过无线电联系。";
+        finalReply = safeReplies[body.characterId] || "收到。外面雨大，先找安全的地方避雨，确认情况后再行动。";
       }
       return json({ reply: finalReply, character: character.name });
     } catch (error) {
