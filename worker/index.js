@@ -337,11 +337,11 @@ export default {
       const stillHasChinese = (finalReply.match(/[\u4e00-\u9fff]/g) || []).length;
       if (stillHasChinese >= 8 && !leakedInstruction && !/[。！？!?]$/.test(finalReply)) finalReply += "。";
       // Reject common context failures: parroting the player, narrating their words, or copying another speaker.
-      const contextFailure = /你刚刚(对我)?说(了|的是|什么)|你说[“「].{0,100}[”」]吗|你说了[“「].{0,100}[”」]|我接着你说|你嚷嚷着|大家把暂时的不适|你在说我呢|你刚刚说了什么事儿|玩家想开玩笑|玩家正式来找到我|你回复[：:]|玩家说[：:]|先判断玩家|严禁用|最多两句|你是公共频道里另一位幸存者|对你回应|角色视角|玩家这轮真正想表达/.test(finalReply);
+      const contextFailure = /你刚刚(对我)?说(了|的是|什么)|你说[“「].{0,100}[”」]吗|你说了[“「].{0,100}[”」]|我接着你说|你嚷嚷着|大家把暂时的不适|你在说我呢|你刚刚说了什么事儿|玩家.{0,80}(?:想开玩笑|正式来找到我|这轮真正想表达|说[：:]|希望|正在)|你回复[：:]|玩家说[：:]|先判断玩家|严禁用|最多两句|你是公共频道里另一位幸存者|对你回应|角色视角|玩家这轮真正想表达|你回复[“「]|你睡不着吗哈哈/.test(finalReply);
       const echoesPlayer = message.length >= 5 && finalReply.includes(message.slice(0, Math.min(16, message.length)));
       // Short, natural replies are valid. Replace empty, leaked, or clearly incoherent output with a contextual in-character line.
       if (!finalReply || leakedInstruction || stillHasChinese < 2 || contextFailure || echoesPlayer) {
-        const casual = /聊聊天|聊聊|孤单|孤独|无聊|陪我/.test(message);
+        const casual = /聊聊天|聊聊|孤单|孤独|无聊|陪我|哈哈|嘻嘻|睡不着|抱着睡|抱我|开玩笑/.test(message);
         const complaint = /逻辑|答非所问|听不懂|不舒适|不舒服/.test(message);
         const safeReplies = complaint ? {
           lin: "……这句确实没接上。你说得对，我重新听你说。",
@@ -350,10 +350,10 @@ export default {
           ash: "嗯，刚才那句不对。我听着，你继续。",
           xiaoman: "啊……我刚才说跑偏了，对不起。咱重新聊。"
         } : casual ? {
-          lin: "我不太会找话题，不过我在听。你今天有没有碰上什么小事？",
-          mira: "好啊，先不说那些糟心事了。你平时无聊的时候会做什么？",
+          lin: /睡不着|哈哈|嘻嘻/.test(message) ? "哈，被你发现了？雨声吵得人脑仁疼，躺下也睡不着。你倒是精神不错啊。" : "我不太会找话题，不过我在听。你今天有没有碰上什么小事？",
+          mira: /睡不着|哈哈|嘻嘻/.test(message) ? "林野那家伙？他嘴上不说，估计又在硬撑。你笑他归笑他，别真让他一个人淋太久的雨。" : "好啊，先不说那些糟心事了。你平时无聊的时候会做什么？",
           oldzhou: "聊呗。今天这破收音机倒是安静了会儿，难得。",
-          ash: "可以。频道里难得不用谈正事……你先说，或者我讲个小事。",
+          ash: /睡不着|哈哈|嘻嘻/.test(message) ? "隔着电台都听得出你在笑他。让他嘴硬去吧，雨声确实够烦人的。" : "可以。频道里难得不用谈正事……你先说，或者我讲个小事。",
           xiaoman: "好呀！我刚才还在想，末日前你最爱吃什么来着？"
         } : {
           lin: "嗯，我听着。你接着说。",
