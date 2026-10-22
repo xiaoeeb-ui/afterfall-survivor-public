@@ -77,7 +77,7 @@ function chooseResponders(text){
   if(/灰鸦/.test(t))return ["ash"];
   if(/小满/.test(t)||/光头强/.test(t))return ["xiaoman"];
   // Short acknowledgements should continue the last speaker's conversation, not reset it.
-  if(/^(是的|对|嗯|嗯嗯|不是|没错|然后呢|真的吗|谢谢|好呀|好啊|哈哈|嘻嘻|呜呜|=_=)[！!。？?…～\s]*$/.test(t)){
+  if(/^(是的|对|嗯|嗯嗯|不是|没错|然后呢|真的吗|谢谢|好呀|好啊|哈哈|嘻嘻|呜呜|啊+|天呢|我知道啊?|是啊|也是|对啊|行吧|好吧|=_=)[！!。？?…～\s]*$/.test(t)){
     const recent=(state.chats.group||[]).slice().reverse().find(m=>m&&m.who&&m.who!=="你"&&m.who!=="系统提示"&&m.who!=="探索事件"&&m.kind!=="system");
     const map={"林野":"lin","米拉":"mira","老周":"oldzhou","灰鸦":"ash","小满":"xiaoman"};
     if(recent&&map[recent.who])return [map[recent.who]];
@@ -111,7 +111,7 @@ function send(text){
  persist();renderState();
  const responders=sendMode==="group"?chooseResponders(text):[sendActive];
  const id=responders[0],history=chat.slice(0,-1).slice(-10).map(m=>({...m})),feedKey=key;
- const shouldChimeIn=sendMode==="group"&&(/大家|你们|有人吗|陪我|聊聊天|聊聊|孤单|孤独|难过|害怕|想哭|哈哈|好无聊|谢谢你们|你们觉得|你们说|还有的人|其他人|其他幸存者|他们哪里|他们在哪|怎么就你|都去哪了|谁还在|你们有干粮|有没有干粮|有吃的吗|你们怎么样|大家的情况/.test(text));
+ const shouldChimeIn=sendMode==="group"&&(/大家|你们|有人吗|陪我|聊聊天|聊聊|孤单|孤独|难过|害怕|想哭|哈哈|好无聊|谢谢你们|你们觉得|你们说|还有的人|其他人|其他幸存者|他们哪里|他们在哪|怎么就你|都去哪了|谁还在|你们有干粮|有没有干粮|有吃的吗|你们怎么样|大家的情况|一点逻辑性都没有|不舒适|不舒服|我知道啊?|是啊不舒适/.test(text));
  const secondaryPool=Object.keys(cast).filter(x=>x!==id);
  const secondary=shouldChimeIn?secondaryPool[(state.eventCount+text.length+state.hour)%secondaryPool.length]:null;
  askCharacter(id,text,history).then(async reply=>{
@@ -126,7 +126,7 @@ function send(text){
   if(secondary){
    try{
     const followHistory=(state.chats[feedKey]||[]).slice(-12).map(m=>({...m}));
-    const follow=await askCharacter(secondary,"你是公共频道里另一位不同地点的幸存者。请先看清玩家刚才问了什么、第一位角色已经回答了什么，再像群聊中的另一个人自然补充一句：可以补充自己知道的其他幸存者近况、纠正不准确的信息、开个玩笑或回应情绪。不要重复前一个角色，不要假装知道未传来的消息，不要编造物资数量，也不要为了接话而硬转任务。",followHistory);
+    const follow=await askCharacter(secondary,"你是公共频道里另一位幸存者。先判断玩家这轮真正想表达什么，再自然接话。严禁用“你刚刚说了……”“你说的是……吗”来复述玩家；严禁把上一位角色的整句话重新引用；严禁写成旁白、总结或分析。若玩家在抱怨回复不合逻辑，就承认并针对内容回应；若玩家只想聊天，就像群聊里的朋友一样随口聊，不要强行转任务。最多两句。只补充自己知道的事，不编造消息或物资。",followHistory);
     if(follow){
      const t=String(state.hour).padStart(2,"0")+":00";
      state.chats[feedKey]=state.chats[feedKey]||[];state.chats[feedKey].push({who:cast[secondary].name,text:follow,time:t});
