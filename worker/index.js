@@ -156,14 +156,16 @@ export default {
     if (!character) return json({ error: "请选择有效的幸存者。" }, 400);
     if (!message) return json({ error: "消息不能为空。" }, 400);
 
-    const prior = Array.isArray(body.history) ? body.history.slice(-8) : [];
-    const contents = [];
-    for (const item of prior) {
-      if (!item || !["user", "model"].includes(item.role)) continue;
-      const text = String(item.content || "").trim().slice(0, 500);
-      if (text) contents.push({ role: item.role, parts: [{ text }] });
-    }
-    contents.push({ role: "user", parts: [{ text: message }] });
+    // Recent chat is a transcript, not this character's own assistant turns.
+    const prior = Array.isArray(body.history) ? body.history.slice(-12) : [];
+    const transcript = prior.map(item => {
+      if (!item) return "";
+      const who = String(item.who || "").slice(0, 24);
+      const content = String(item.content || "").trim().slice(0, 320);
+      return content ? (who ? who + "：" : "") + content : "";
+    }).filter(Boolean).join("\\n");
+    const currentInput = (transcript ? "【最近频道记录，仅供理解上下文；每句话前的名字代表真实发言者，不代表你本人说过】\\n" + transcript + "\\n【玩家刚刚对你说】\\n" : "") + message;
+    const contents = [{ role: "user", parts: [{ text: currentInput.slice(-4200) }] }];
 
     const relationship = Number.isFinite(Number(body.relationship)) ? Number(body.relationship) : 0;
     const localMemory = Array.isArray(body.memory) ? body.memory.slice(-8).map(x => String(x).slice(0, 240)) : [];
@@ -185,6 +187,8 @@ export default {
 当前世界状态（必须遵守，不能凭空改写玩家的数值、位置或物资）：${world}
 与玩家当前信任值：${relationship}（负数代表戒备，正数代表更信任；通过态度自然体现，禁止直接提数值）。
 角色记忆：${memory || "目前没有额外的长期记忆。"}
+对话接续规则（最高优先级）：玩家最新一句话是当前焦点。先判断这句话是在接前一句、回应你、提出新问题、开玩笑、分享感受，还是要求你做事；如果它明显接续上一轮，就必须围绕上一轮具体内容回答，不能突然切换到天气、危险、广播或自己的工作。玩家说“哈哈”“啥玩意儿”“为什么”“哪里闷了”等短句时，必须结合最近频道记录解释或接话，不要当作孤立的新话题。玩家点名某角色、提到“高架桥那位”等已有上下文指向时，要针对该人物和当前已知情况回应；不知道就坦白不知道，不要随机换话题。先回应玩家话里的具体意思，再决定是否补充自己的事。闲聊时尽量顺着同一话题来回聊至少几轮，除非玩家主动换话题。不要把“保持角色独立”误解为忽略玩家：角色可以忙、敷衍或不同意，但要明确接住对方刚说的话。
+群聊中也要有对话连贯性：近期记录是整个频道的逐字转录，每个名字后面的内容都属于那个人。你不是所有发言的说话者；不要把林野的话说成自己的话，不要把灰鸦、老周等人的发言原样复述。若玩家直接回应某个角色，优先针对玩家和该角色之间的对话继续。除非确有必要，不要把每条用户消息都变成单独的新剧情。
 真实生活与人物连续性（优先级很高）：这不是每句话都触发任务的游戏客服。人会聊废话、抱怨天气、开玩笑、答非所问、误会、沉默、敷衍，也会因为忙、困、害怕、没电或信号差而只回几个字。玩家在撒娇、开玩笑、抱怨、表达委屈或只是打招呼时，先按普通人际交流回应，不要擅自把话题拽回任务、危险、物资清单或安全教育。不要每次都抛问题，不要每轮都制造新危机、神秘线索或悬念；多数时刻可以只是日常琐事和短暂交流。不要过度热情、过度共情或无条件赞同，人物可以有自己的意见和边界。
 角色说话要有辨识度：林野偏短句，先讲自己实际看到的，再给判断；米拉说话细致但忙起来会打断或显得疲惫；老周爱讲实际问题，偶尔挖苦，不会突然变成心理导师；灰鸦不必句句神秘，可以冷淡、沉默，也可能只回答一半；小满会好奇、嘴硬、偶尔说漏嘴，但不应每次都表现得可爱。不要把这些特点机械重复，每次根据当前情境自然变化。
 上下文边界：历史记录里的“林野：……” “灰鸦：……”等是频道中其他人的原话，不代表你自己说过，也不代表你亲眼见过。你只能记得自己听到的频道内容和自己的经历；不能把别人的经历认成自己的，不能假装知道未传达给你的私聊内容。若玩家只对你说话，回应玩家即可，不要擅自替其他角色发言。公共频道里别人说的话可以引起你的回应，但只有确实相关时才接话。
@@ -331,15 +335,16 @@ export default {
         .trim();
       const stillHasChinese = (finalReply.match(/[\u4e00-\u9fff]/g) || []).length;
       if (stillHasChinese >= 8 && !leakedInstruction && !/[。！？!?]$/.test(finalReply)) finalReply += "。";
-      if (stillHasChinese < 8 || leakedInstruction) {
+      // Short, natural replies are valid. Only replace empty or leaked internal-planning output.
+      if (!finalReply || leakedInstruction || stillHasChinese < 2) {
         const safeReplies = {
-          lin: "收到。东侧高架这会儿雨很大，我不会贸然往上走，先找个能遮雨的位置观察。你先待在救护点，等我确认路况再用电台联系你。",
-          mira: "听到了，雨天路滑，先别急着外出。你待在救护点里注意保暖，有受伤或缺水的情况就马上告诉我。",
-          oldzhou: "这雨下得真不是时候。高架那边先别乱闯，等雨势小些再说；我先把维修厂的设备护好。",
-          ash: "收到。大雨会盖住不少声音，也会让路况更危险。先别急着行动，我继续监听频道，有新消息再通知你。",
-          xiaoman: "哎，这种天气还往高架跑也太冒险了。你先别动，我在地铁站入口这边躲雨，听到什么动静会马上告诉你。"
+          lin: "嗯，我听着。你接着说。",
+          mira: "我在呢，怎么了？",
+          oldzhou: "说吧，我听着呢。",
+          ash: "在。继续。",
+          xiaoman: "我在我在，怎么啦？"
         };
-        finalReply = safeReplies[body.characterId] || "收到。外面雨大，先找安全的地方避雨，确认情况后再行动。";
+        finalReply = safeReplies[body.characterId] || "我在，继续说。";
       }
       if (env.GAME_ROOM) {
         try {
