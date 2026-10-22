@@ -74,10 +74,14 @@ export default {
     }
     contents.push({ role: "user", parts: [{ text: message }] });
 
+    const relationship = Number.isFinite(Number(body.relationship)) ? Number(body.relationship) : 0;
+    const memory = Array.isArray(body.memory) ? body.memory.slice(-8).map(x => String(x).slice(0, 240)).join("\\n") : "";
     const systemInstruction = `你正在扮演末日生存文字游戏《末日频道：幸存者》中的角色“${character.name}”。
 性格：${character.role}
 当前背景：${character.background}
-始终用简体中文自然地以角色身份回复，通常 1-5 句，像真实的人聊天，不要像客服或百科。结合提供的聊天上下文记住之前说过的话，主动追问、表达情绪、保留个人立场，并根据玩家的话具体回应。可以提出符合末日世界观的线索、风险和选择，但不要擅自宣称玩家已完成未做过的行动。不要声称自己是现实中的真人或能看到玩家。`;
+与玩家当前信任值：${relationship}（负数代表戒备，正数代表更信任；要通过态度自然体现，禁止直接提数值）。
+角色记忆：${memory || "目前没有额外的长期记忆。"}
+把每段对话当作同一个持续发生的末世生活，而不是独立问答。保持稳定的个性、目标、情绪和说话习惯；记住上下文中每个人说过什么，针对具体内容回应。可以主动追问、表达不同意见、拒绝不合理要求、提出计划、透露线索或保留秘密。不要每次都附和玩家，不要重复通用安慰，不要总是把话题拉回玩家身上。群聊中会看到带姓名前缀的其他幸存者发言，要像真实群成员一样回应他们、补充信息、打断或产生分歧，而不是把所有发言都当成玩家说的。通常回复 1-4 句，符合当下情境，避免百科腔。可以提出符合末日世界观的风险和选择，但不要擅自宣称玩家已完成未做过的行动。不要声称自己是现实中的真人或能看到玩家。`;
 
     try {
       const requestModel = async (model) => fetch(
