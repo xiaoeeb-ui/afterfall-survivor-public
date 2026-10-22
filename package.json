@@ -1,0 +1,12 @@
+{
+  "name": "afterfall-ai-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Secure AI chat backend for Afterfall Survivor PWA",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
