@@ -362,40 +362,56 @@ export default {
       const complaint = /答非所问|说话牛头不对马嘴|牛头不对马嘴|没接上|没听懂|说不完整|说话说不完整|角色还是|问题没解决|不对劲|不对啊|不是这个意思|你没听|你没接/.test(message);
       const casual = /聊聊天|聊聊|随便聊|嘻嘻|哈哈|陪我|孤单|无聊|睡不着|抱抱/.test(message);
       if (!finalReply || leakedInstruction || stillHasChinese < 2 || contextFailure || echoesPlayer || repeatsReply || genericGreetingMismatch) {
-        const intimate = /抱着睡|抱抱|抱我|陪我睡|陪我一会儿|陪我一会/.test(message);
+        const intimate = /抱着睡|抱抱|抱我|陪我睡|陪我一会儿|陪我一会|睡在一起|挤在一起|四个人|大家一起睡/.test(message);
         const playfulChat = /聊聊天|聊聊|随便聊|嘻嘻|哈哈/.test(message);
-        const safeReplies = complaint ? {
-          lin: "……刚才那句确实没接上。算我的，我重新听着。",
-          mira: "哎，刚才我没接住你的话。重来，这回不把话题岔开了。",
-          oldzhou: "行，刚才聊岔了。咱重来，这回不瞎接话。",
-          ash: "嗯，刚才那句不对。我听着，这回接你的话说。",
-          xiaoman: "啊，我刚刚说跑偏了。再来一次，这回认真听。"
-        } : intimate ? {
-          lin: "要真能把被子分你一半就好了。现在只能隔着电台陪你聊会儿，别嫌我话少。",
-          mira: "哎，真想给你塞床暖和被子。隔着电台抱不到你，不过我可以陪你慢慢聊一会儿。",
-          oldzhou: "抱是抱不到，电台又不是长手的。行了，我先陪你唠会儿，困了就安心睡。",
-          ash: "隔着这台破电台，手伸再长也够不着。……不过今晚我暂时不关频道。",
-          xiaoman: "要是能把被窝分你一半就好啦。现在我陪你说会儿话，等你困了再睡嘛。"
-        } : playfulChat ? {
-          lin: "行啊，难得不用汇报路线。你先笑什么呢？也说给我听听。",
-          mira: "嘻嘻，听见啦。我刚忙完，正好偷个懒。来，咱们聊点没用但开心的。",
-          oldzhou: "聊呗，难得这破收音机没先给我添堵。你今天有啥乐子？",
-          ash: "嗯，频道暂时归闲聊管。说吧，我今晚还没困到连话都懒得说。",
-          xiaoman: "好呀！我刚刚正想找人闲聊呢。你先起个头，还是我讲个糗事？"
-        } : casual ? {
-          lin: "我听着。你慢慢说，不急。",
-          mira: "我在呢，慢慢聊。今天先不急着解决什么问题。",
-          oldzhou: "说吧，我听着呢。今天不谈正事也行。",
-          ash: "在听。今晚可以先不谈正事。",
-          xiaoman: "我在我在，咱们随便聊！"
-        } : {
-          lin: "嗯，我听着。你接着说。",
-          mira: "我在呢，慢慢说。",
-          oldzhou: "说吧，我听着呢。",
-          ash: "在。继续。",
-          xiaoman: "我在我在，怎么啦？"
+        const askingOthers = /他们人呢|他们呢|人呢|大家去哪了|大家在哪|其他人呢|还有谁|都去哪了|你们人呢|他们在哪|他们哪里/.test(message);
+        const sayingSleep = /我要睡觉了|我去睡了|我睡觉了|准备睡了|要睡了|睡觉呢|我困了|困死了/.test(message);
+        const groupSleep = /四个人|大家一起|我们一起|睡在一起|挤在一起|抱团|一个被窝|一张床/.test(message);
+        const fallbackByCharacter = {
+          lin: {
+            others: "都还在各自的位置。米拉在学校体育馆的医疗区，老周在南边修理厂，我在东侧高架附近；灰鸦和小满那边暂时没听到新的情况。",
+            sleep: "那就去睡吧，别硬撑。频道我先留着；明天醒了再说也来得及。",
+            groupSleep: "……听起来倒挺暖和。可惜现在隔着电台，各自守着各自的地方。等真有机会碰面，再找个不漏雨的屋顶吧。"
+          },
+          mira: {
+            others: "他们都还在各自的地方呢：林野在东侧高架附近，老周守着修理厂，灰鸦在城西，小满在地铁入口。我没收到他们出事的消息，只是不知道他们这会儿是不是都忙着。",
+            sleep: "那你就安心睡吧，今天先到这儿。要是还想说一句再睡也行，我听着，不催你。",
+            groupSleep: "哎，想想都觉得暖和。四个人挤在一块儿，外头下着雨，至少不用各自对着一台冷冰冰的电台了。可惜眼下大家还分散着……不过这念头挺好。"
+          },
+          oldzhou: {
+            others: "没都挤一块儿。林野在高架那边，我在修理厂，米拉在学校体育馆，灰鸦在城西，小满守着地铁口。都还隔着老远呢。",
+            sleep: "去吧，睡觉比跟这破电台耗着强。把水放手边，别半夜起来摸黑找。",
+            groupSleep: "哈哈，四个人挤一屋？先得找个不漏雨、不塌顶的地方。真能凑齐了，至少晚上不用轮流对着电台发呆。"
+          },
+          ash: {
+            others: "还在各自的坐标上。林野在东侧高架，米拉在学校，老周在修理厂，小满在地铁口。我暂时没听见谁失联。",
+            sleep: "那就睡。今晚没必要硬撑着清醒……频道里的声音还在，先让脑子歇一会儿。",
+            groupSleep: "四个人睡在一处……听起来像很久以前的普通日子。眼下我们隔着几公里，只能在电台里想一想。"
+          },
+          xiaoman: {
+            others: "应该都还在原来的地方吧！林野在高架附近，米拉在学校体育馆，老周在修理厂，灰鸦在城西。我这边还在地铁口，暂时没听说谁不见了。",
+            sleep: "噢，你真准备睡啦？那我不吵你了。晚安——明天要是还在频道里，记得告诉我你睡得怎么样。",
+            groupSleep: "那画面也太挤了吧，哈哈！不过要是能找个安全又不漏雨的地方，大家挨着休息一晚，好像真的会安心不少。现在只能先隔着电台想想啦。"
+          }
         };
-        finalReply = safeReplies[body.characterId] || "我在，继续说。";
+        const selectedFallback = fallbackByCharacter[body.characterId] || fallbackByCharacter.mira;
+        let fallbackReply;
+        if (complaint) {
+          fallbackReply = ({lin:"……刚才那句确实没接上。算我的，我重新听着。",mira:"哎，刚才我没接住你的话。重来，这回不把话题岔开了。",oldzhou:"行，刚才聊岔了。咱重来，这回不瞎接话。",ash:"嗯，刚才那句不对。我听着，这回接你的话说。",xiaoman:"啊，我刚刚说跑偏了。再来一次，这回认真听。" })[body.characterId];
+        } else if (askingOthers) {
+          fallbackReply = selectedFallback.others;
+        } else if (groupSleep) {
+          fallbackReply = selectedFallback.groupSleep;
+        } else if (sayingSleep) {
+          fallbackReply = selectedFallback.sleep;
+        } else if (intimate) {
+          fallbackReply = ({lin:"要真能把被子分你一半就好了。现在只能隔着电台陪你聊会儿。",mira:"真想给你留一床暖和被子。现在隔着电台抱不到，不过睡前我可以再陪你说会儿话。",oldzhou:"抱是抱不到，电台又不是长手的。行了，我先陪你唠会儿。",ash:"隔着这台破电台，手伸再长也够不着。……不过我暂时不关频道。",xiaoman:"要是能把被窝分你一半就好啦。现在我陪你说会儿话。" })[body.characterId];
+        } else if (playfulChat) {
+          fallbackReply = ({lin:"行啊，难得不用汇报路线。你想聊点什么？",mira:"好呀，我刚忙完一小阵，正好歇口气。你今天有没有遇到什么小事？",oldzhou:"聊呗，难得这破收音机没先给我添堵。",ash:"嗯，今晚先不谈正事。你说，我听着。",xiaoman:"好呀！我正好想歇会儿，咱们聊点没用但开心的。" })[body.characterId];
+        } else {
+          fallbackReply = ({lin:"嗯，我听着。",mira:"嗯，听见了。",oldzhou:"行，我听着呢。",ash:"在。",xiaoman:"嗯？怎么啦？"})[body.characterId];
+        }
+        finalReply = fallbackReply || "我听着。";
       }
       if (env.GAME_ROOM) {
         try {
