@@ -163,8 +163,8 @@ export default {
       const who = String(item.who || "").slice(0, 24);
       const content = String(item.content || "").trim().slice(0, 320);
       return content ? (who ? who + "：" : "") + content : "";
-    }).filter(Boolean).join("\\n");
-    const currentInput = (transcript ? "【最近频道记录，仅供理解上下文；每句话前的名字代表真实发言者，不代表你本人说过】\\n" + transcript + "\\n【玩家刚刚对你说】\\n" : "") + message;
+    }).filter(Boolean).join("\n");
+    const currentInput = (transcript ? "【最近频道记录，仅供理解上下文；每句话前的名字代表真实发言者，不代表你本人说过】\n" + transcript + "\n【玩家刚刚对你说】\n" : "") + message;
     const contents = [{ role: "user", parts: [{ text: currentInput.slice(-4200) }] }];
 
     const relationship = Number.isFinite(Number(body.relationship)) ? Number(body.relationship) : 0;
@@ -178,7 +178,7 @@ export default {
         if (Array.isArray(memoryData.memory)) sharedMemory = memoryData.memory;
       } catch (memoryError) { console.warn("Shared character memory unavailable:", memoryError?.message || "unknown"); }
     }
-    const memory = [...sharedMemory, ...localMemory].slice(-12).join("\\n");
+    const memory = [...sharedMemory, ...localMemory].slice(-12).join("\n");
     const world = body.world && typeof body.world === "object" ? JSON.stringify(body.world).slice(0, 1200) : "玩家在旧城区临时救护点";
     const systemInstruction = `你正在扮演末日生存文字游戏《末日频道：幸存者》中的角色“${character.name}”。
 性格：${character.role}
@@ -233,7 +233,7 @@ export default {
           { role: "system", content: systemInstruction },
           ...contents.map(item => ({
             role: item.role === "model" ? "assistant" : "user",
-            content: (item.parts || []).map(part => part.text || "").join("\\n")
+            content: (item.parts || []).map(part => part.text || "").join("\n")
           }))
         ];
         const providers = [
