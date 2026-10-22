@@ -3,5 +3,16 @@ main = "index.js"
 compatibility_date = "2026-10-22"
 workers_dev = true
 
+[triggers]
+crons = ["*/15 * * * *"]
+
 [ai]
 binding = "AI"
+
+[[durable_objects.bindings]]
+name = "GAME_ROOM"
+class_name = "AfterfallRoom"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["AfterfallRoom"]
