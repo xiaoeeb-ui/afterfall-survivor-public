@@ -42,7 +42,87 @@ function json(data, status = 200) {
   });
 }
 
+
+export class AfterfallRoom {
+  constructor(state, env) {
+    this.state = state;
+    this.env = env;
+  }
+  async fetch(request) {
+    const url = new URL(request.url);
+    const method = request.method;
+    if (url.pathname === "/messages" && method === "GET") {
+      const after = Number(url.searchParams.get("after") || 0);
+      const messages = (await this.state.storage.get("messages")) || [];
+      return Response.json({ messages: messages.filter(m => m.id > after).slice(-100), latestId: messages.length ? messages[messages.length - 1].id : after });
+    }
+    if (url.pathname === "/messages" && method === "POST") {
+      let body;
+      try { body = await request.json(); } catch { return Response.json({ error: "消息格式错误" }, { status: 400 }); }
+      const text = String(body.text || "").trim().slice(0, 500);
+      const clientId = String(body.clientId || "").slice(0, 80);
+      if (!text || !clientId) return Response.json({ error: "消息内容或客户端标识缺失" }, { status: 400 });
+      const messages = (await this.state.storage.get("messages")) || [];
+      const nextId = ((await this.state.storage.get("nextMessageId")) || 1);
+      const item = { id: nextId, clientId, who: String(body.who || "幸存者").slice(0, 40), text, kind: String(body.kind || "").slice(0, 20), time: String(body.time || "").slice(0, 20), createdAt: Date.now() };
+      messages.push(item);
+      await this.state.storage.put({ messages: messages.slice(-250), nextMessageId: nextId + 1 });
+      return Response.json({ ok: true, message: item });
+    }
+    if (url.pathname === "/memory" && method === "GET") {
+      const id = String(url.searchParams.get("characterId") || "");
+      if (!["lin", "mira", "oldzhou", "ash", "xiaoman"].includes(id)) return Response.json({ memory: [] });
+      return Response.json({ memory: (await this.state.storage.get("memory:" + id)) || [] });
+    }
+    if (url.pathname === "/memory" && method === "POST") {
+      let body;
+      try { body = await request.json(); } catch { return Response.json({ error: "记忆格式错误" }, { status: 400 }); }
+      const id = String(body.characterId || "");
+      if (!["lin", "mira", "oldzhou", "ash", "xiaoman"].includes(id)) return Response.json({ error: "角色无效" }, { status: 400 });
+      const memory = (await this.state.storage.get("memory:" + id)) || [];
+      memory.push(String(body.entry || "").slice(0, 400));
+      await this.state.storage.put("memory:" + id, memory.slice(-40));
+      return Response.json({ ok: true });
+    }
+    if (url.pathname === "/activity" && method === "POST") {
+      let body;
+      try { body = await request.json(); } catch { return Response.json({ error: "活动格式错误" }, { status: 400 }); }
+      const slot = Number(body.slot || 0);
+      if (!slot) return Response.json({ ok: false });
+      const lastSlot = (await this.state.storage.get("lastActivitySlot")) || 0;
+      if (slot <= lastSlot) return Response.json({ ok: true, skipped: true });
+      const activities = [
+        { who: "林野", text: "东侧绕行的小路积水比刚才深了。我先不往里走，等雨小点再看。", kind: "npc" },
+        { who: "米拉", text: "刚忙完一轮换药。有人把热水壶找出来了，至少能喝口热的。", kind: "npc" },
+        { who: "老周", text: "发电机又抖了两下，不是大毛病，但我得找根合适的线替换。", kind: "npc" },
+        { who: "灰鸦", text: "频道里安静了十几分钟。刚才有个很短的载波，不像是我们的人。", kind: "npc" },
+        { who: "小满", text: "我翻到半包饼干，碎得跟沙子似的……算了，有得吃就不错。", kind: "npc" },
+        { who: "老周", text: "谁把湿袜子放在电台旁边了？我不想知道是谁，赶紧拿走。", kind: "npc" },
+        { who: "米拉", text: "我终于坐下来了。就两分钟，谁也别叫我。", kind: "npc" },
+        { who: "林野", text: "雨声小了一点，能听清远处的动静了。暂时没看到人影。", kind: "npc" }
+      ];
+      const item = { ...activities[slot % activities.length], id: (await this.state.storage.get("nextMessageId")) || 1, clientId: "npc-scheduler", time: new Date().toISOString().slice(11, 16), createdAt: Date.now() };
+      const messages = (await this.state.storage.get("messages")) || [];
+      messages.push(item);
+      const nextId = item.id + 1;
+      await this.state.storage.put({ messages: messages.slice(-250), nextMessageId: nextId, lastActivitySlot: slot });
+      return Response.json({ ok: true, message: item });
+    }
+    return Response.json({ error: "找不到共享世界接口" }, { status: 404 });
+  }
+}
+
 export default {
+  async scheduled(controller, env, ctx) {
+    if (!env.GAME_ROOM) return;
+    const room = env.GAME_ROOM.get(env.GAME_ROOM.idFromName("afterfall-global-room"));
+    const slot = Math.floor(Date.now() / 900000);
+    ctx.waitUntil(room.fetch("https://afterfall-room.internal/activity", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ slot })
+    }));
+  },
   async fetch(request, env) {
     const origin = request.headers.get("Origin");
     if (request.method === "OPTIONS") {
@@ -53,10 +133,16 @@ export default {
     if (url.pathname === "/health" && request.method === "GET") {
       return json({ ok: true, service: "afterfall-ai-chat-api" });
     }
+    if (origin !== ALLOWED_ORIGIN) return json({ error: "请求来源未获允许。" }, 403);
+    if (url.pathname.startsWith("/api/room/") || url.pathname === "/api/memory") {
+      if (!env.GAME_ROOM) return json({ error: "共享世界存储尚未就绪。" }, 503);
+      const room = env.GAME_ROOM.get(env.GAME_ROOM.idFromName("afterfall-global-room"));
+      const internalPath = url.pathname === "/api/memory" ? "/memory" : url.pathname.slice("/api/room".length);
+      return room.fetch(new Request("https://afterfall-room.internal" + internalPath + url.search, request));
+    }
     if (url.pathname !== "/api/chat" || request.method !== "POST") {
       return json({ error: "找不到这个接口。" }, 404);
     }
-    if (origin !== ALLOWED_ORIGIN) return json({ error: "请求来源未获允许。" }, 403);
     if (!env.GEMINI_API_KEY && !env.GROQ_API_KEY && !env.OPENROUTER_API_KEY && !env.AI) return json({ error: "后端尚未配置可用的 AI 服务。" }, 503);
 
     let body;
@@ -80,7 +166,17 @@ export default {
     contents.push({ role: "user", parts: [{ text: message }] });
 
     const relationship = Number.isFinite(Number(body.relationship)) ? Number(body.relationship) : 0;
-    const memory = Array.isArray(body.memory) ? body.memory.slice(-8).map(x => String(x).slice(0, 240)).join("\\n") : "";
+    const localMemory = Array.isArray(body.memory) ? body.memory.slice(-8).map(x => String(x).slice(0, 240)) : [];
+    let sharedMemory = [];
+    if (env.GAME_ROOM) {
+      try {
+        const room = env.GAME_ROOM.get(env.GAME_ROOM.idFromName("afterfall-global-room"));
+        const memoryResponse = await room.fetch("https://afterfall-room.internal/memory?characterId=" + encodeURIComponent(body.characterId));
+        const memoryData = await memoryResponse.json();
+        if (Array.isArray(memoryData.memory)) sharedMemory = memoryData.memory;
+      } catch (memoryError) { console.warn("Shared character memory unavailable:", memoryError?.message || "unknown"); }
+    }
+    const memory = [...sharedMemory, ...localMemory].slice(-12).join("\\n");
     const world = body.world && typeof body.world === "object" ? JSON.stringify(body.world).slice(0, 1200) : "玩家在旧城区临时救护点";
     const systemInstruction = `你正在扮演末日生存文字游戏《末日频道：幸存者》中的角色“${character.name}”。
 性格：${character.role}
@@ -244,6 +340,16 @@ export default {
           xiaoman: "哎，这种天气还往高架跑也太冒险了。你先别动，我在地铁站入口这边躲雨，听到什么动静会马上告诉你。"
         };
         finalReply = safeReplies[body.characterId] || "收到。外面雨大，先找安全的地方避雨，确认情况后再行动。";
+      }
+      if (env.GAME_ROOM) {
+        try {
+          const room = env.GAME_ROOM.get(env.GAME_ROOM.idFromName("afterfall-global-room"));
+          await room.fetch("https://afterfall-room.internal/memory", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ characterId: body.characterId, entry: "玩家说：“" + message.slice(0, 160) + "”；我回应：“" + finalReply.slice(0, 180) + "”" })
+          });
+        } catch (memoryError) { console.warn("Could not save shared character memory:", memoryError?.message || "unknown"); }
       }
       return json({ reply: finalReply, character: character.name });
     } catch (error) {
