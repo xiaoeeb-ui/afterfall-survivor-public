@@ -22,6 +22,18 @@
 <div id="chatActions" class="actions"><button class="chip" data-say="大家现在的情况怎么样？">📣 询问大家情况</button><button class="chip" data-say="我们需要先做什么？">🧭 商量下一步</button><button class="chip" data-say="谁发现了新的线索？">📻 汇总线索</button><button class="chip" id="explore">🔦 探索附近</button></div>
 <form class="composer" id="form"><input id="entry" autocomplete="off" placeholder="对频道里的所有人说点什么……" maxlength="500" aria-label="输入消息"><button class="send" type="submit">发送</button></form>
 <div class="foot">角色有独立性格与关系记忆 · 世界状态保存在本机 · 群聊中角色会互相回应</div></div>
+<script>
+(function(){
+function showFatal(message){
+ let box=document.getElementById("startup-error");
+ if(!box){box=document.createElement("div");box.id="startup-error";box.style.cssText="position:fixed;z-index:99999;inset:12px 12px auto;padding:16px;background:#4a1717;color:#fff;border:2px solid #ff7777;border-radius:12px;font:14px/1.5 system-ui;white-space:pre-wrap;max-height:45vh;overflow:auto";document.body.appendChild(box)}
+ box.textContent="游戏脚本发生错误，导致按钮无法工作。\n"+String(message||"未知错误")+"\n请把这段提示发给 ChatGPT。";
+}
+window.addEventListener("error",function(e){showFatal((e.message||"脚本错误")+"（"+(e.filename||"")+"："+(e.lineno||"")+"）")});
+window.addEventListener("unhandledrejection",function(e){showFatal(e.reason&&e.reason.message?e.reason.message:e.reason)});
+window.__afterfallShowFatal=showFatal;
+})();
+</script>
 <script src="./api-config.js"></script><script>
 (function(){
 "use strict";
