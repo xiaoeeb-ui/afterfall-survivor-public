@@ -89,7 +89,7 @@ export default {
 当前世界状态（必须遵守，不能凭空改写玩家的数值、位置或物资）：${world}
 与玩家当前信任值：${relationship}（负数代表戒备，正数代表更信任；通过态度自然体现，禁止直接提数值）。
 角色记忆：${memory || "目前没有额外的长期记忆。"}
-完整回复要求：每次发言控制在 2-3 句、约 35-85 个汉字，优先简洁自然、像即时无线电聊天。必须把最后一句完整说完并加句末标点；绝不能在“我现在正”“因为那边有”这类未完成的句子中结束，也不要用省略号假装结束。回复内容只包含角色实际说出口的话，不加旁白标题。若不知道答案，直接说不知道或信号不清。
+语言与输出格式（严格遵守）：必须使用简体中文回复，只有确有必要的专有名词可以保留英文。绝不输出英文的思考草稿、角色视角标签、任务指令、摘要或分析，例如“(Lin Ye's perspective)”“Reiterate focus on safety”等；这些都不是角色说出口的话。每次发言控制在 2-3 句、约 35-85 个汉字，优先简洁自然、像即时无线电聊天。必须把最后一句完整说完并加句末标点；绝不能在“我现在正”“因为那边有”这类未完成的句子中结束，也不要用省略号假装结束。最终回复只能包含角色实际通过无线电说出口的中文内容，不加旁白标题或括号说明。若不知道答案，直接用中文说不知道或信号不清。
 这是一个持续发生的末世生活，不是独立问答。保持稳定的个性、目标、情绪和说话习惯；记住上下文中每个人说过什么、承诺过什么、争执过什么，并针对具体内容回应。可以主动追问、表达不同意见、拒绝不合理要求、提出计划、透露线索或保留秘密。不要每次都附和玩家，不要重复通用安慰，不要总把话题拉回玩家身上。群聊中会看到带姓名前缀的其他幸存者发言，要像真实群成员一样回应他们、补充信息、产生分歧或彼此追问；针对其他幸存者的发言回应时，也必须保持自己角色的所在地和知识边界。不要每次都把角色写成一致意见。角色可以沉默、犹豫、误解、开玩笑、拒绝或改变主意，但变化要有原因。每次只写自己角色的发言，不要代替其他角色说话。不要擅自宣称玩家已完成未做过的行动，也不要凭空改变食物、饮水、健康或库存。不要声称自己是现实中的真人或能看到玩家。`;
 
     try {
@@ -139,7 +139,21 @@ export default {
       const reply = (result.candidates?.[0]?.content?.parts || [])
         .map(part => part.text || "").join("").trim();
       if (!reply) return json({ error: "AI 没有生成回复，请再试一次。" }, 502);
-      return json({ reply, character: character.name });
+      // Guard against leaked English planning notes or perspective labels.
+      const chineseCount = (reply.match(/[\u4e00-\u9fff]/g) || []).length;
+      const leakedInstruction = /\b(perspective|reiterate|focus on safety|internal note|analysis|system prompt|assistant)\b/i.test(reply);
+      let finalReply = reply;
+      if (chineseCount < 8 || leakedInstruction) {
+        const safeReplies = {
+          lin: "收到。我在东侧高架附近，先确认周围安全再行动。你那边保持警惕，有新情况及时用电台告诉我。",
+          mira: "收到，先别着急，确保自己待在相对安全的地方。你那边如果有受伤或不舒服的情况，尽快告诉我。",
+          oldzhou: "听见了。先把眼前的安全和补给顾好，别冒冒失失往危险地方钻。有需要修的东西就跟我说。",
+          ash: "信号收到了。别急着下结论，附近的动静未必像表面那么简单。留意频道，我还会继续监听。",
+          xiaoman: "喂，收到啦！我这边还在地铁站西口附近，你先别乱跑，听见什么异常就赶紧在频道里说一声。"
+        };
+        finalReply = safeReplies[body.characterId] || "收到，先确认周围安全，有新情况再通过无线电联系。";
+      }
+      return json({ reply: finalReply, character: character.name });
     } catch (error) {
       console.error("Gemini request failed:", error?.message || "unknown");
       return json({ error: "连接 AI 服务失败，请检查网络后重试。" }, 502);
