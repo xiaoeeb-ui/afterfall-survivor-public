@@ -126,7 +126,7 @@ function send(text){
   if(secondary){
    try{
     const followHistory=(state.chats[feedKey]||[]).slice(-12).map(m=>({...m}));
-    const follow=await askCharacter(secondary,"你是公共频道里另一位幸存者。先判断玩家这轮真正想表达什么，再自然接话。严禁用“你刚刚说了……”“你说的是……吗”来复述玩家；严禁把上一位角色的整句话重新引用；严禁写成旁白、总结或分析。若玩家在抱怨回复不合逻辑，就承认并针对内容回应；若玩家只想聊天，就像群聊里的朋友一样随口聊，不要强行转任务。最多两句。只补充自己知道的事，不编造消息或物资。",followHistory);
+    const follow=await askCharacter(secondary,text,followHistory);
     if(follow){
      const t=String(state.hour).padStart(2,"0")+":00";
      state.chats[feedKey]=state.chats[feedKey]||[];state.chats[feedKey].push({who:cast[secondary].name,text:follow,time:t});
