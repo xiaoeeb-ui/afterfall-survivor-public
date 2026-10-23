@@ -373,7 +373,7 @@ ${body.followup ? "你是群聊里的后续接话者。请接住上一位幸存�
       const stillHasChinese = (finalReply.match(/[\u4e00-\u9fff]/g) || []).length;
       if (stillHasChinese >= 8 && !leakedInstruction && !/[。！？!?]$/.test(finalReply)) finalReply += "。";
       const recentCharacterReplies = prior.filter(item => item && String(item.who || "") === character.name).map(item => String(item.content || "")).slice(-4);
-      const normalizeReplyForComparison = value => String(value || "").toLowerCase().replace(/[\\s\\p{P}\\p{S}]/gu, "");
+      const normalizeReplyForComparison = value => String(value || "").toLowerCase().replace(/[\s\p{P}\p{S}]/gu, "");
       const replyBigrams = value => {
         const chars = Array.from(normalizeReplyForComparison(value));
         const pairs = new Set();
@@ -407,8 +407,8 @@ ${body.followup ? "你是群聊里的后续接话者。请接住上一位幸存�
       const sayingSleep = /我要睡觉了|我去睡了|我睡觉了|准备睡了|要睡了|睡觉呢|我困了|困死了|睡觉吧|晚安/.test(message);
       const groupSleep = /四个人|大家一起|我们一起|睡在一起|挤在一起|抱团|一个被窝|一张床/.test(message);
       const wantsCompany = /谁来跟我待一块|来跟我待一块|谁来跟我抱着睡|来跟我抱着睡|抱着睡吗|来陪我|陪我待着|陪我一会|陪我睡|待在我旁边|来我这|来我这里|陪我聊|陪陪我|留下来/.test(message);
-      const confused = /^(?:\\?|？|什么玩意儿|呃+|嗯？|啊？|啥玩意儿|不是吧|怎么回事)[！!。？?…\\s]*$/.test(message);
-      const shortAgreement = /^(?:是的|对|嗯|嗯嗯|没错|是啊|对啊|也是)[！!。？?…\\s]*$/.test(message);
+      const confused = /^(?:\?|？|什么玩意儿|呃+|嗯？|啊？|啥玩意儿|不是吧|怎么回事)[！!。？?…\s]*$/.test(message);
+      const shortAgreement = /^(?:是的|对|嗯|嗯嗯|没错|是啊|对啊|也是)[！!。？?…\s]*$/.test(message);
       const previousPlayerMessage = prior.slice().reverse().find(item => item && /^(玩家|你)$/.test(String(item.who || "")));
       const previousPlayerText = String(previousPlayerMessage?.content || "").trim();
       const previousCharacterMessage = prior.slice().reverse().find(item => item && String(item.who || "") === character.name);
