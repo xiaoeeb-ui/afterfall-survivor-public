@@ -156,7 +156,7 @@ export default {
     if (!message) return json({ error: "消息不能为空。" }, 400);
 
     // Recent chat is a transcript, not this character's own assistant turns.
-    const prior = (Array.isArray(body.history) ? body.history.slice(-12) : []).map(item => {
+    const prior = (Array.isArray(body.history) ? body.history.slice(-16) : []).map(item => {
       if (!item || typeof item !== "object") return item;
       // The frontend stores transcript text in "text"; normalize it once so
       // prompt building, contextual rules, and repetition checks all see it.
@@ -174,7 +174,7 @@ export default {
     const currentInput = body.followup
       ? transcriptBlock + "【群聊接话任务】请针对最近一位幸存者刚说的具体内容自然接话，不要重复玩家的问题或前一位角色的原话。"
       : transcriptBlock + (transcript ? "【玩家刚刚对你说】\n" : "") + message;
-    const contents = [{ role: "user", parts: [{ text: currentInput.slice(-4200) }] }];
+    const contents = [{ role: "user", parts: [{ text: currentInput.slice(-5200) }] }];
 
     const relationship = Number.isFinite(Number(body.relationship)) ? Number(body.relationship) : 0;
     const localMemory = Array.isArray(body.memory) ? body.memory.slice(-12).map(x => String(x).slice(0, 240)).filter(x => !/^(?:玩家说[：:]|频道里玩家说[：:])/.test(x.trim())) : [];
