@@ -402,6 +402,7 @@ ${body.followup ? "你是群聊里的后续接话者。请接住上一位幸存�
       const intimate = /抱着睡|抱抱|抱我|陪我睡|陪我一会儿|陪我一会|睡在一起|挤在一起|四个人|大家一起睡/.test(message);
       const playfulChat = /聊聊天|聊聊|随便聊|嘻嘻|哈哈/.test(message);
       const askingOthers = /他们人呢|他们呢|人呢|大家去哪了|大家在哪|其他人呢|还有谁|都去哪了|你们人呢|他们在哪|他们哪里|他们在哪里|还有两位呢|还有两个人呢|另外两位|其他两位|其他两个人|大家的情况|其他幸存者/.test(message);
+      const askingWorld = /这世界|这个世界|世界怎么了|世界现在|发生什么|现在怎么回事|到底怎么了|外面怎么了|为什么变成这样|到底发生了什么|末日怎么了/.test(message);
       const sayingSleep = /我要睡觉了|我去睡了|我睡觉了|准备睡了|要睡了|睡觉呢|我困了|困死了|睡觉吧|晚安/.test(message);
       const groupSleep = /四个人|大家一起|我们一起|睡在一起|挤在一起|抱团|一个被窝|一张床/.test(message);
       const wantsCompany = /谁来跟我待一块|来跟我待一块|谁来跟我抱着睡|来跟我抱着睡|抱着睡吗|来陪我|陪我待着|陪我一会|陪我睡|待在我旁边|来我这|来我这里|陪我聊|陪陪我|留下来/.test(message);
@@ -416,6 +417,7 @@ ${body.followup ? "你是群聊里的后续接话者。请接住上一位幸存�
         const fallbackByCharacter = {
           lin: {
             others: "都还在各自的位置。米拉在学校体育馆的医疗区，老周在南边修理厂，我在东侧高架附近；灰鸦和小满那边暂时没听到新的情况。",
+            world: "我能确认的只有东侧高架附近有异常动静，旧城区并不安全。更大的原因我还没查清，不会拿猜测当结论。",
             sleep: "那就睡吧，别硬撑。我会把频道音量留着；明天醒了再说。",
             groupSleep: "听着挺好。只是我们还隔着无线电，真要会合得先找安全路线和能过夜的地方。",
             company: "我听得见你，但现在赶不过去。我在东侧高架，离你有段距离。今晚我可以留在频道里陪你说几句。",
@@ -423,6 +425,7 @@ ${body.followup ? "你是群聊里的后续接话者。请接住上一位幸存�
           },
           mira: {
             others: "他们都还在各自的地方呢：林野在东侧高架附近，老周守着修理厂，灰鸦在城西，小满在地铁入口。我没收到他们出事的消息。",
+            world: "我知道的也有限：我们靠临时救护点和无线电互相联系，旧城区已经失去正常秩序。至于灾变为什么发生，我还没有可靠消息。",
             sleep: "好，那就休息吧。今天不用再勉强自己找话题了。晚安，醒了想聊再来叫我。",
             groupSleep: "我也觉得那样会暖和很多。大家不用各自守着一间冷屋子，光是能听见彼此呼吸就安心些。可惜现在还分散着，只能先在频道里陪你。",
             company: "不是不愿意呀。只是我们现在分散在不同地方，我没法一下子赶到你身边。不过我可以先陪你聊一会儿，不急着结束。",
@@ -430,6 +433,7 @@ ${body.followup ? "你是群聊里的后续接话者。请接住上一位幸存�
           },
           oldzhou: {
             others: "没都挤一块儿。林野在高架那边，我在修理厂，米拉在学校体育馆，灰鸦在城西，小满守着地铁口。都还隔着老远呢。",
+            world: "具体怎么变成这样，我也没拿到准信。现在电力、补给和通信都不稳定，先把眼前能用的东西守住。",
             sleep: "去睡吧，别跟电台耗到天亮。水放手边，别半夜摸黑找。晚安。",
             groupSleep: "四个人挤一屋？先得找个不漏雨、不塌顶的地方。真能凑齐了，至少晚上不用各自对着电台发呆。",
             company: "我倒不是不想去，可我还在南边修理厂，腿又不是车轮子。眼下只能在频道里陪你唠会儿，等有路再说。",
@@ -437,6 +441,7 @@ ${body.followup ? "你是群聊里的后续接话者。请接住上一位幸存�
           },
           ash: {
             others: "还在各自的坐标上。林野在东侧高架，米拉在学校，老周在修理厂，小满在地铁口。我暂时没听见谁失联。",
+            world: "频道里有一段每隔十七分钟重复的广播，可能是线索，但我还没弄清它和灾变有没有关系。其他的，我不会乱猜。",
             sleep: "去睡。今晚不用强撑着清醒……频道还开着，先让脑子歇会儿。",
             groupSleep: "四个人睡在一处，听起来像很久以前的普通日子。眼下我们隔着几公里，只能先在频道里待一会儿。",
             company: "我没法突然出现在你那边。我在城西，路况也不清楚……但我还听着，暂时不切断频道。",
@@ -444,6 +449,7 @@ ${body.followup ? "你是群聊里的后续接话者。请接住上一位幸存�
           },
           xiaoman: {
             others: "应该都还在原来的地方吧！林野在高架附近，米拉在学校体育馆，老周在修理厂，灰鸦在城西。我这边还在地铁口，暂时没听说谁不见了。",
+            world: "我也想知道啊！地铁口一直有怪声，广播又断断续续的，可我还没找到能说清楚到底发生了什么的消息。",
             sleep: "好嘛，那我不吵你了。晚安！等你醒了再告诉我有没有睡好。",
             groupSleep: "那样肯定暖和多了，挤一点也没关系吧。可惜我们现在离得远，只能先隔着电台想想。",
             company: "不是不行啦，我也愿意陪你。只是我还在地铁口，没办法马上跑到你那边；我先留在频道里，陪你说会儿话。",
@@ -454,6 +460,8 @@ ${body.followup ? "你是群聊里的后续接话者。请接住上一位幸存�
         let fallbackReply;
         if (complaint) {
           fallbackReply = ({lin:"刚才我没接好。你重新说，我这次会按你的意思回。",mira:"抱歉，刚才我没认真接住你的话。我们重来。",oldzhou:"行，刚才我说岔了。这回不拿套话糊弄你。",ash:"刚才那句不对。我重新听。",xiaoman:"哎，我刚才又说重复了。对不起，我认真回答你。" })[body.characterId];
+        } else if (askingWorld) {
+          fallbackReply = selectedFallback.world;
         } else if (askingOthers) {
           fallbackReply = selectedFallback.others;
         } else if (wantsCompany) {
@@ -489,6 +497,7 @@ ${body.followup ? "你是群聊里的后续接话者。请接住上一位幸存�
         const fallbackAlternatives = {
           lin: {
             others: "我这边没收到谁失联的消息。各人还守着原来的位置，真有变化会在频道里说。",
+            world: "我只知道旧城区出了大问题，具体原因还没有证据。先把能确认的事和猜测分开。",
             company: "我现在没法穿过半座城赶过去，但可以先不关电台。你说，我听着。",
             sleep: "好，先休息。把频道声音调低些，别让杂音一直吵你。",
             groupSleep: "要是真能找到个安全屋，大家挤在一起守夜也比各自熬着强。眼下先记着这个念头。",
@@ -496,6 +505,7 @@ ${body.followup ? "你是群聊里的后续接话者。请接住上一位幸存�
           },
           mira: {
             others: "目前没人报告失联。我会继续留意频道，有消息就告诉你。",
+            world: "我们眼下只掌握零散消息，没法确定灾变的起因。我会留意频道，有可靠消息再告诉你。",
             company: "我没法马上到你身边，不过今晚可以多留一会儿。你不必急着找新话题。",
             sleep: "那就先睡吧。今晚已经够累了，醒来再慢慢聊也来得及。",
             groupSleep: "有个能让所有人安心落脚的地方就好了。至少不用每个人都独自熬过夜里。",
@@ -503,6 +513,7 @@ ${body.followup ? "你是群聊里的后续接话者。请接住上一位幸存�
           },
           oldzhou: {
             others: "没收到谁出事的消息。我们几个各守各的地盘，有情况就会报一声。",
+            world: "要说原因，我现在真不知道。电力和补给都不稳是眼前的事，别的等有准信再说。",
             company: "我这边暂时走不开，但电台还开着。你说吧，我边修东西边听。",
             sleep: "赶紧歇着，别硬撑。水和手电放在伸手够得着的地方就行。",
             groupSleep: "真要找地方过夜，先挑结实不漏雨的。到时候再想怎么挤，别先把屋顶压塌了。",
@@ -510,6 +521,7 @@ ${body.followup ? "你是群聊里的后续接话者。请接住上一位幸存�
           },
           ash: {
             others: "频道暂时没有失联报告。每个人都还在自己的位置上，至少目前如此。",
+            world: "每隔十七分钟出现的那段广播值得查，但它是不是灾变的原因还不能下结论。",
             company: "我暂时不能过去，但这条频道还通着。我可以再听你说一阵。",
             sleep: "去歇一会儿吧。夜里不需要把每一分钟都撑过去。",
             groupSleep: "安全的屋子、几个人的呼吸声……以前这算不上什么，如今倒像奢侈品。",
@@ -517,13 +529,14 @@ ${body.followup ? "你是群聊里的后续接话者。请接住上一位幸存�
           },
           xiaoman: {
             others: "我这边还没听到谁出事。大家都守着各自的位置，有新消息我就马上说！",
+            world: "我只听到些零碎消息，还没人说清楚原因呢！要是我发现可靠线索，马上在频道里讲。",
             company: "我现在真跑不过去啦，但我会把电台开着。你想聊什么都行，我不急着走。",
             sleep: "好嘛，先睡一觉。醒来再找我聊天，今晚别跟自己较劲啦。",
             groupSleep: "要是真有一间安全屋，大家挤挤也比一个人听雨强。等我们真会合了再挑床位！",
             general: "我刚才又想起那只猫了，不知道它是不是也找到避雨的地方。至少这会儿频道里有人说话啦。"
           }
         };
-        const chosenAlternativeType = askingOthers ? "others" : wantsCompany ? "company" : sayingSleep ? "sleep" : groupSleep ? "groupSleep" : "general";
+        const chosenAlternativeType = askingWorld ? "world" : askingOthers ? "others" : wantsCompany ? "company" : sayingSleep ? "sleep" : groupSleep ? "groupSleep" : "general";
         if (recentCharacterReplies.some(old => normalizeReplyForComparison(old) === normalizeReplyForComparison(finalReply))) {
           const alternative = fallbackAlternatives[body.characterId]?.[chosenAlternativeType];
           if (alternative && !recentCharacterReplies.some(old => normalizeReplyForComparison(old) === normalizeReplyForComparison(alternative))) {
