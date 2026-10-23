@@ -78,10 +78,10 @@ function chooseResponders(text){
   if(/老周/.test(t))return ["oldzhou"];
   if(/灰鸦/.test(t))return ["ash"];
   if(/小满|光头强/.test(t))return ["xiaoman"];
-  if(/他们人呢|他们呢|人呢|大家去哪了|大家在哪|其他人呢|还有谁|都去哪了|你们人呢|他们在哪|他们哪里|所有人都去哪|其他幸存者/.test(t))return [last||"lin"];
+  if(/他们人呢|他们呢|人呢|大家去哪了|大家在哪|其他人呢|还有谁|都去哪了|你们人呢|他们在哪|他们哪里|他们在哪里|还有两位呢|还有两个人呢|另外两位|其他两位|其他两个人|所有人都去哪|其他幸存者|大家的情况/.test(t))return [last||"lin"];
   // Invitations for company should go to the current conversational partner, not a random NPC.
-  if(/谁来跟我待一块|来跟我待一块|来陪我|陪我待着|陪我一会|陪我睡|待在我旁边|来我这|来我这里|陪我聊|不行吗|陪陪我|留下来|我们一起睡|睡在一起|挤在一起|一个被窝|四个人/.test(t))return [last||"mira"];
-  if(/^(是的|对|嗯|嗯嗯|不是|没错|然后呢|真的吗|谢谢|好呀|好啊|哈哈|嘻嘻|呜呜|啊+|天呢|我知道啊?|是啊|也是|对啊|行吧|好吧|=_=|睡觉呢|睡觉吧|我要睡觉了|我去睡了|我困了|困死了|晚安|这样啊|不行吗)[！!。？?…～\\s]*$/.test(t))return [last||"mira"];
+  if(/谁来跟我待一块|来跟我待一块|谁来跟我抱着睡|来跟我抱着睡|抱着睡吗|来陪我|陪我待着|陪我一会|陪我睡|待在我旁边|来我这|来我这里|陪我聊|不行吗|陪陪我|留下来|我们一起睡|睡在一起|挤在一起|一个被窝|四个人/.test(t))return [last||"mira"];
+  if(/^(是的|对|嗯|嗯嗯|不是|没错|然后呢|真的吗|谢谢|好呀|好啊|哈哈|嘻嘻|呜呜|啊+|天呢|我知道啊?|是啊|也是|对啊|行吧|好吧|=_=|睡觉呢|睡觉吧|我要睡觉了|我去睡了|我困了|困死了|晚安|这样啊|不行吗|无语了|无语|呃+)[！!。？?…～\\s]*$/.test(t))return [last||"mira"];
   if(/聊聊天|聊聊|随便聊|抱着睡|抱抱|抱我|陪我睡|陪我一会儿|陪我一会/.test(t))return [last||"mira"];
   if(/大家|你们|还有的人|其他人|怎么就你|所有人|各位|谁还在|有人吗|你们有干粮|有没有干粮|有吃的吗/.test(t)){
     const roster=["lin","mira","oldzhou","ash","xiaoman"];
@@ -108,7 +108,7 @@ function send(text){
  persist();renderState();
  const responders=sendMode==="group"?chooseResponders(text):[sendActive];
  const id=responders[0],history=chat.slice(0,-1).slice(-10).map(m=>({...m})),feedKey=key;
- const shouldChimeIn=sendMode==="group"&&(/大家|你们|有人吗|孤单|孤独|难过|害怕|想哭|好无聊|谢谢你们|你们觉得|你们说|还有的人|其他人|其他幸存者|他们哪里|他们在哪|他们人呢|人呢|怎么就你|都去哪了|谁还在|你们有干粮|有没有干粮|有吃的吗|你们怎么样|大家的情况|一点逻辑性都没有|不舒适|不舒服|我知道啊?|是啊不舒适|四个人|大家一起睡|睡在一起|挤在一起|一个被窝/.test(text));
+ const shouldChimeIn=sendMode==="group"&&(/大家|你们|有人吗|孤单|孤独|难过|害怕|想哭|好无聊|谢谢你们|你们觉得|你们说|还有的人|其他人|其他幸存者|他们哪里|他们在哪|他们在哪里|他们人呢|还有两位呢|还有两个人呢|其他两位|其他两个人|人呢|怎么就你|都去哪了|谁还在|你们有干粮|有没有干粮|有吃的吗|你们怎么样|大家的情况|一点逻辑性都没有|不舒适|不舒服|我知道啊?|是啊不舒适|四个人|大家一起睡|睡在一起|挤在一起|一个被窝/.test(text));
  const secondaryPool=Object.keys(cast).filter(x=>x!==id);
  const secondary=shouldChimeIn?secondaryPool[(state.eventCount+text.length+state.hour)%secondaryPool.length]:null;
  askCharacter(id,text,history).then(async reply=>{
