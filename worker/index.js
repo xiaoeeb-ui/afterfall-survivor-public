@@ -177,14 +177,14 @@ export default {
     const contents = [{ role: "user", parts: [{ text: currentInput.slice(-4200) }] }];
 
     const relationship = Number.isFinite(Number(body.relationship)) ? Number(body.relationship) : 0;
-    const localMemory = Array.isArray(body.memory) ? body.memory.slice(-8).map(x => String(x).slice(0, 240)) : [];
+    const localMemory = Array.isArray(body.memory) ? body.memory.slice(-12).map(x => String(x).slice(0, 240)).filter(x => !/^(?:玩家说[：:]|频道里玩家说[：:])/.test(x.trim())) : [];
     let sharedMemory = [];
     if (env.GAME_ROOM) {
       try {
         const room = env.GAME_ROOM.get(env.GAME_ROOM.idFromName("afterfall-global-room"));
         const memoryResponse = await room.fetch("https://afterfall-room.internal/memory?characterId=" + encodeURIComponent(body.characterId));
         const memoryData = await memoryResponse.json();
-        if (Array.isArray(memoryData.memory)) sharedMemory = memoryData.memory;
+        if (Array.isArray(memoryData.memory)) sharedMemory = memoryData.memory.filter(entry => !/^(?:玩家说[：:]|频道里玩家说[：:])/.test(String(entry || "").trim()));
       } catch (memoryError) { console.warn("Shared character memory unavailable:", memoryError?.message || "unknown"); }
     }
     const memory = [...sharedMemory.slice(-6), ...localMemory.slice(-6)].slice(-8).join("\n");
@@ -532,13 +532,13 @@ ${body.followup ? "你是群聊里的后续接话者。请接住上一位幸存�
         }
       }
       // Do not overwrite a valid model response with a canned keyword reply. Only store durable details in shared memory.
-      if (env.GAME_ROOM && /记住|答应|约定|说好了|喜欢|讨厌|害怕|不喜欢|我叫|名字|受伤|失联|找到|救了|承诺|信任|相信|担心|家人|朋友|生日|以前|过去/.test(message)) {
+      if (env.GAME_ROOM && /记住|记一下|约定|答应|说好了|我叫|我的名字|我喜欢|我讨厌|我害怕|我怕|我不喜欢|我受伤|我的家人|我家人|我的朋友|我朋友|我的生日|我生日|生日是|我相信你|我信任你|我来自|我住在|我以前|过去我|我曾经/.test(message)) {
         try {
           const room = env.GAME_ROOM.get(env.GAME_ROOM.idFromName("afterfall-global-room"));
           await room.fetch("https://afterfall-room.internal/memory", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ characterId: body.characterId, entry: "玩家说：“" + message.slice(0, 160) + "”；我回应：“" + finalReply.slice(0, 180) + "”" })
+            body: JSON.stringify({ characterId: body.characterId, entry: "玩家明确告诉我：“" + message.slice(0, 300) + "”" })
           });
         } catch (memoryError) { console.warn("Could not save shared character memory:", memoryError?.message || "unknown"); }
       }
