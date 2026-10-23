@@ -384,6 +384,8 @@ ${body.followup ? "你是群聊里的后续接话者。请接住上一位幸存�
       const shortAgreement = /^(?:是的|对|嗯|嗯嗯|没错|是啊|对啊|也是)[！!。？?…\\s]*$/.test(message);
       const previousPlayerMessage = prior.slice().reverse().find(item => item && /^(玩家|你)$/.test(String(item.who || "")));
       const previousPlayerText = String(previousPlayerMessage?.content || "").trim();
+      const previousCharacterMessage = prior.slice().reverse().find(item => item && String(item.who || "") === character.name);
+      const previousCharacterText = String(previousCharacterMessage?.content || "").trim();
       const genericNonAnswer = /^(?:嗯？怎么啦[？?！!。]*|我在呢[，,。！! ]*慢慢说[。！!]*|我在我在[，,。！! ]*怎么啦[？?！!。]*|我听着[。！!]*|在[。！!]*|嗯，我听着[。！!]*|嗯，听见了[。！!]*|嗯，我听见啦[。！!]*|嗯，我听见了[。！!]*|我听见啦[。！!]*|听到了[。！!]*|听见了[。！!]*|行，我听着呢[。！!]*)$/u.test(finalReply);
       if (!finalReply || leakedInstruction || stillHasChinese < 2 || contextFailure || echoesPlayer || repeatsReply || genericGreetingMismatch || genericNonAnswer || (wantsCompany && /我在我在|嗯？怎么啦|我在呢，慢慢说/.test(finalReply)) || (sayingSleep && /嗯？怎么啦|我在我在|我在呢，慢慢说/.test(finalReply)) || (shortAgreement && /嗯？怎么啦|我在我在|我在呢，慢慢说/.test(finalReply))) {
         const fallbackByCharacter = {
@@ -431,6 +433,10 @@ ${body.followup ? "你是群聊里的后续接话者。请接住上一位幸存�
           fallbackReply = selectedFallback.others;
         } else if (wantsCompany) {
           fallbackReply = selectedFallback.company;
+        } else if (shortAgreement && /陪着你|有人陪|不是只会回|我听明白|想要的是有人|对不对|你是想/.test(previousCharacterText)) {
+          fallbackReply = ({lin:"明白。你想要的是有人认真陪着你，不是只在频道里报个到。我先留在频道里，也可以叫其他人接着聊。",mira:"嗯，我听懂了。你想有人真正把话接下去，而不是只回一句“我在”。我陪你聊着，我们也可以把其他人叫进来。",oldzhou:"行，这回我听明白了。你不是来点名查岗的，是想有人陪你说话。我先不下线，咱们接着聊。",ash:"知道了。你要的是有人认真回应，不是空荡荡的一句回音。我还在频道里，继续说吧。",xiaoman:"好嘛，这次我听懂啦。你是想有人陪你，不是让我一直问“怎么啦”。我认真陪你聊，也把大家叫上。"}[body.characterId] || "我明白了。我会认真接着你的话说，不再只回一句“嗯”。");
+        } else if (shortAgreement) {
+          fallbackReply = ({lin:"好，那我接着刚才的话说。你想先聊聊，还是让我把目前知道的情况说清楚？",mira:"好呀，那我们接着聊。你刚才说的我有在听，不用急着换话题。",oldzhou:"行，那就这么说定了。咱接着聊，别让这破电台只剩杂音。",ash:"好。我听着，接着说吧。",xiaoman:"好嘛，那我不乱猜啦。我们接着刚才的话题说！"}[body.characterId] || "好，我们接着说。");
         } else if (confused) {
           fallbackReply = selectedFallback.confused;
         } else if (shortAgreement && /一起睡|睡在一起|挤在一起|一个被窝|四个人|大家一起/.test(previousPlayerText)) {
