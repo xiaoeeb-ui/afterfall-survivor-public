@@ -77,6 +77,16 @@ function contextualReplyForClearIntent(characterId, message, prior, world) {
       xiaoman: "要不先盘点一下手里的吃的喝的？" + priority + "我这边可以帮着问问频道有没有人报告新情况，咱们一步一步来。"
     })[characterId];
   }
+  // Directly answer invitations/questions about sleeping together instead of falling through to the generic "radio is still on" reply.
+  if (/一起睡觉吗|一起睡吗|睡觉吗|要不要一起睡|陪我睡|抱着睡吗|一起睡一会/.test(text)) {
+    return ({
+      lin: "你这是想找个人陪着入睡吧。真要我现在赶过去还不现实，我们隔着电台呢；不过我可以留在线上陪你说几句。你想安静听着，还是再聊会儿？",
+      mira: "你是想问我能不能陪你一起睡，对吗？要是能在同一个屋檐下当然会安心些，可我们现在还隔着电台。我可以先陪你聊到困，或者安静待一会儿，不催你。",
+      oldzhou: "嚯，直接邀请我一起睡啊？可惜我还在修理厂，没法隔着电台瞬移过去。要是你想睡前有人说说话，我能陪你唠几句，不拿那句‘频道没断’糊弄你了。",
+      ash: "如果你问的是能不能一起睡——我现在只能隔着电台回应，没法真的到你身边。但我可以把频道留着一会儿。你不用硬撑着找话题，想说就说。",
+      xiaoman: "一起睡觉吗？要是我们真在一个安全的屋子里，我大概会先抢靠墙的位置，嘿嘿。可惜现在只能隔着电台啦；我可以陪你聊到困，也可以安静一会儿。"
+    })[characterId];
+  }
   if (/^(哈哈+|嘻嘻+|嘿嘿+|笑死了)[!！。…～]*$/.test(text)) {
     if (/猫|叫声|地铁口/.test(lastNpcText)) return ({
       lin: "看来那只猫把你逗乐了。希望它真只是只猫；小满最好别为了找它往站里走。",
