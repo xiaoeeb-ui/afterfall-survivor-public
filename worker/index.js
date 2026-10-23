@@ -169,7 +169,7 @@ export default {
       return content ? (who ? who + "：" : "") + content : "";
     }).filter(Boolean).join("\n");
     const currentInput = body.followup ? "请根据上面的真实频道记录接着上一位幸存者自然接话，不要重复玩家原问题。" : ((transcript ? "【最近频道记录，仅供理解上下文；每句话前的名字代表真实发言者】\n" + transcript + "\n【玩家刚刚对你说】\n" : "") + message);
-    const contents = [{ role: "user", parts: [{ text: currentInput.slice(-4200) }] }];
+    const contents = [{ role: "user", parts: [{ text: (body.followup ? "请接着频道记录自然接话。" : message).slice(-1000) }] }];
 
     const relationship = Number.isFinite(Number(body.relationship)) ? Number(body.relationship) : 0;
     const localMemory = Array.isArray(body.memory) ? body.memory.slice(-8).map(x => String(x).slice(0, 240)) : [];
@@ -209,7 +209,7 @@ ${transcript || "（还没有更早的频道记录）"}
 
 【本轮任务】
 ${body.followup ? "你是群聊里的后续接话者。请根据最近频道记录，接住上一位幸存者刚才说的具体内容，像群友一样自然补一句；不要重复玩家原问题，也不要重新开场。" : "玩家刚刚对你说：" + message}
-请直接给出角色发言，不要添加姓名标签或解释。`
+请直接给出角色发言，不要添加姓名标签或解释。`;
 
     try {
       const requestModel = async (model) => fetch(
