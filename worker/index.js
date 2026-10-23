@@ -372,7 +372,27 @@ ${body.followup ? "你是群聊里的后续接话者。请接住上一位幸存�
       const stillHasChinese = (finalReply.match(/[\u4e00-\u9fff]/g) || []).length;
       if (stillHasChinese >= 8 && !leakedInstruction && !/[。！？!?]$/.test(finalReply)) finalReply += "。";
       const recentCharacterReplies = prior.filter(item => item && String(item.who || "") === character.name).map(item => String(item.content || "")).slice(-4);
-      const repeatsReply = recentCharacterReplies.some(old => old.trim() && old.trim() === finalReply.trim());
+      const normalizeReplyForComparison = value => String(value || "").toLowerCase().replace(/[\\s\\p{P}\\p{S}]/gu, "");
+      const replyBigrams = value => {
+        const chars = Array.from(normalizeReplyForComparison(value));
+        const pairs = new Set();
+        for (let i = 0; i < chars.length - 1; i++) pairs.add(chars[i] + chars[i + 1]);
+        return pairs;
+      };
+      const normalizedReply = normalizeReplyForComparison(finalReply);
+      const repeatsReply = recentCharacterReplies.some(old => {
+        const normalizedOld = normalizeReplyForComparison(old);
+        if (!normalizedOld || !normalizedReply) return false;
+        if (normalizedOld === normalizedReply) return true;
+        // Catch punctuation-only edits and near-copies without treating short acknowledgements as duplicates.
+        if (Math.min(normalizedOld.length, normalizedReply.length) < 16) return false;
+        const oldPairs = replyBigrams(old);
+        const newPairs = replyBigrams(finalReply);
+        if (!oldPairs.size || !newPairs.size) return false;
+        let overlap = 0;
+        for (const pair of newPairs) if (oldPairs.has(pair)) overlap++;
+        return (2 * overlap) / (oldPairs.size + newPairs.size) >= 0.88;
+      });
       const casualInvite = /聊聊天|聊聊|随便聊|嘻嘻|哈哈|抱着睡|抱抱|抱我|陪我睡|陪我一会儿|陪我一会|陪我聊/.test(message);
       const genericGreetingMismatch = casualInvite && /好久不见|你好吗[，,！!？? ]*最近怎么样|都这些天你一个人过来了|你是什么意思|忘了睡觉了/.test(finalReply);
       const contextFailure = /你刚刚(对我)?说(了|的是|什么)|你说[“「].{0,100}[”」]吗|你说了[“「].{0,100}[”」]|我接着你说|你嚷嚷着|大家把暂时的不适|你在说我呢|你刚刚说了什么事儿|玩家.{0,80}(?:想开玩笑|正式来找到我|这轮真正想表达|说[：:]|希望|正在)|你回复[：:]|玩家说[：:]|先判断玩家|严禁用|最多两句|你是公共频道里另一位幸存者|对你回应|角色视角|玩家这轮真正想表达|你回复[“「]|你睡不着吗哈哈|previous responses|system prompt|bugs like repeating|complaint is not defined|undefined|internal note/i.test(finalReply);
