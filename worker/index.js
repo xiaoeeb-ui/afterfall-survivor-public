@@ -484,6 +484,52 @@ ${body.followup ? "你是群聊里的后续接话者。请接住上一位幸存�
           })[body.characterId];
         }
         finalReply = fallbackReply || "我听见了。";
+        // If a safety fallback itself would repeat the last line, keep the intent
+        // but phrase it differently instead of sending the same canned sentence twice.
+        const fallbackAlternatives = {
+          lin: {
+            others: "我这边没收到谁失联的消息。各人还守着原来的位置，真有变化会在频道里说。",
+            company: "我现在没法穿过半座城赶过去，但可以先不关电台。你说，我听着。",
+            sleep: "好，先休息。把频道声音调低些，别让杂音一直吵你。",
+            groupSleep: "要是真能找到个安全屋，大家挤在一起守夜也比各自熬着强。眼下先记着这个念头。",
+            general: "东边暂时没新动静。我难得能喘口气，你想说什么就接着说。"
+          },
+          mira: {
+            others: "目前没人报告失联。我会继续留意频道，有消息就告诉你。",
+            company: "我没法马上到你身边，不过今晚可以多留一会儿。你不必急着找新话题。",
+            sleep: "那就先睡吧。今晚已经够累了，醒来再慢慢聊也来得及。",
+            groupSleep: "有个能让所有人安心落脚的地方就好了。至少不用每个人都独自熬过夜里。",
+            general: "我刚把药箱收拾好，终于能坐一会儿了。你接着说，我在听。"
+          },
+          oldzhou: {
+            others: "没收到谁出事的消息。我们几个各守各的地盘，有情况就会报一声。",
+            company: "我这边暂时走不开，但电台还开着。你说吧，我边修东西边听。",
+            sleep: "赶紧歇着，别硬撑。水和手电放在伸手够得着的地方就行。",
+            groupSleep: "真要找地方过夜，先挑结实不漏雨的。到时候再想怎么挤，别先把屋顶压塌了。",
+            general: "刚才那颗破螺丝总算松了，差点把我手指磨破。频道难得清静，接着聊。"
+          },
+          ash: {
+            others: "频道暂时没有失联报告。每个人都还在自己的位置上，至少目前如此。",
+            company: "我暂时不能过去，但这条频道还通着。我可以再听你说一阵。",
+            sleep: "去歇一会儿吧。夜里不需要把每一分钟都撑过去。",
+            groupSleep: "安全的屋子、几个人的呼吸声……以前这算不上什么，如今倒像奢侈品。",
+            general: "刚才有一小段杂音，像远处有人碰了下旧唱片。今晚先不谈正事也好。"
+          },
+          xiaoman: {
+            others: "我这边还没听到谁出事。大家都守着各自的位置，有新消息我就马上说！",
+            company: "我现在真跑不过去啦，但我会把电台开着。你想聊什么都行，我不急着走。",
+            sleep: "好嘛，先睡一觉。醒来再找我聊天，今晚别跟自己较劲啦。",
+            groupSleep: "要是真有一间安全屋，大家挤挤也比一个人听雨强。等我们真会合了再挑床位！",
+            general: "我刚才又想起那只猫了，不知道它是不是也找到避雨的地方。至少这会儿频道里有人说话啦。"
+          }
+        };
+        const chosenAlternativeType = askingOthers ? "others" : wantsCompany ? "company" : sayingSleep ? "sleep" : groupSleep ? "groupSleep" : "general";
+        if (recentCharacterReplies.some(old => normalizeReplyForComparison(old) === normalizeReplyForComparison(finalReply))) {
+          const alternative = fallbackAlternatives[body.characterId]?.[chosenAlternativeType];
+          if (alternative && !recentCharacterReplies.some(old => normalizeReplyForComparison(old) === normalizeReplyForComparison(alternative))) {
+            finalReply = alternative;
+          }
+        }
       }
       // Do not overwrite a valid model response with a canned keyword reply. Only store durable details in shared memory.
       if (env.GAME_ROOM && /记住|答应|约定|说好了|喜欢|讨厌|害怕|不喜欢|我叫|名字|受伤|失联|找到|救了|承诺|信任|相信|担心|家人|朋友|生日|以前|过去/.test(message)) {
