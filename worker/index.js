@@ -169,7 +169,7 @@ export default {
       return content ? (who ? who + "：" : "") + content : "";
     }).filter(Boolean).join("\n");
     const currentInput = body.followup ? "请根据上面的真实频道记录接着上一位幸存者自然接话，不要重复玩家原问题。" : ((transcript ? "【最近频道记录，仅供理解上下文；每句话前的名字代表真实发言者】\n" + transcript + "\n【玩家刚刚对你说】\n" : "") + message);
-    const contents = [{ role: "user", parts: [{ text: (body.followup ? "请接着频道记录自然接话。" : message).slice(-1000) }] }];
+    const contents = [{ role: "user", parts: [{ text: currentInput.slice(-4200) }] }];
 
     const relationship = Number.isFinite(Number(body.relationship)) ? Number(body.relationship) : 0;
     const localMemory = Array.isArray(body.memory) ? body.memory.slice(-8).map(x => String(x).slice(0, 240)) : [];
@@ -205,7 +205,7 @@ export default {
 若本轮是群聊里的第二位发言者，请接着上一位幸存者的具体话自然回应；有意义才插话，不要重新回答玩家已经被回答的问题，也不要复制第一位角色的台词。
 
 【最近频道记录】
-${transcript || "（还没有更早的频道记录）"}
+频道记录会在本轮用户消息中提供，请优先依据真实对话内容回应。
 
 【本轮任务】
 ${body.followup ? "你是群聊里的后续接话者。请接住上一位幸存者刚才说的具体内容，像群友一样自然补一句；不要重复玩家原问题，也不要重新开场。" : "请根据上方频道记录与当前用户消息自然回应。"}
@@ -364,7 +364,7 @@ ${body.followup ? "你是群聊里的后续接话者。请接住上一位幸存�
         // character prefix, even when the model mistakenly names another character.
         .replace(/^\s*(?:(?:玩家|你|林野|米拉|老周|灰鸦|小满)\s*[:：]\s*)+/u, "")
         .trim();
-      const stillHasChinese = (finalReply.match(/[\\u4e00-\\u9fff]/g) || []).length;
+      const stillHasChinese = (finalReply.match(/[\u4e00-\u9fff]/g) || []).length;
       if (stillHasChinese >= 8 && !leakedInstruction && !/[。！？!?]$/.test(finalReply)) finalReply += "。";
       const recentCharacterReplies = prior.filter(item => item && String(item.who || "") === character.name).map(item => String(item.content || "")).slice(-4);
       const repeatsReply = recentCharacterReplies.some(old => old.trim() && old.trim() === finalReply.trim());
