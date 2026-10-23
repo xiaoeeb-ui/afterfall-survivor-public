@@ -74,6 +74,7 @@ function chooseResponders(text){
   const map={"林野":"lin","米拉":"mira","老周":"oldzhou","灰鸦":"ash","小满":"xiaoman"};
   const last=recent&&map[recent.who];
   if(/林野|高架桥那位|高架路那位/.test(t))return ["lin"];
+  if(/我们需要先做什么|我们先做什么|先做什么|现在该做什么|接下来做什么|下一步做什么|下一步呢|该怎么办|先怎么办/.test(t))return ["lin"];
   if(/米拉/.test(t))return ["mira"];
   if(/老周/.test(t))return ["oldzhou"];
   if(/灰鸦/.test(t))return ["ash"];
@@ -108,7 +109,7 @@ function send(text){
  persist();renderState();
  const responders=sendMode==="group"?chooseResponders(text):[sendActive];
  const id=responders[0],history=chat.slice(0,-1).slice(-10).map(m=>({...m})),feedKey=key;
- const shouldChimeIn=sendMode==="group"&&(/大家|你们|有人吗|孤单|孤独|难过|害怕|想哭|好无聊|谢谢你们|你们觉得|你们说|还有的人|其他人|其他幸存者|他们哪里|他们在哪|他们在哪里|他们人呢|还有两位呢|还有两个人呢|其他两位|其他两个人|人呢|怎么就你|都去哪了|谁还在|你们有干粮|有没有干粮|有吃的吗|你们怎么样|大家的情况|一点逻辑性都没有|不舒适|不舒服|我知道啊?|是啊不舒适|四个人|大家一起睡|睡在一起|挤在一起|一个被窝/.test(text));
+ const shouldChimeIn=sendMode==="group"&&(/大家|你们|有人吗|孤单|孤独|难过|害怕|想哭|好无聊|谢谢你们|你们觉得|你们说|还有的人|其他人|其他幸存者|他们哪里|他们在哪|他们在哪里|他们人呢|还有两位呢|还有两个人呢|其他两位|其他两个人|人呢|怎么就你|都去哪了|谁还在|你们有干粮|有没有干粮|有吃的吗|你们怎么样|大家的情况|我们需要先做什么|我们先做什么|先做什么|现在该做什么|接下来做什么|下一步做什么|该怎么办|一点逻辑性都没有|不舒适|不舒服|我知道啊?|是啊不舒适|四个人|大家一起睡|睡在一起|挤在一起|一个被窝/.test(text));
  const secondaryPool=Object.keys(cast).filter(x=>x!==id);
  const secondary=shouldChimeIn?secondaryPool[(state.eventCount+text.length+state.hour)%secondaryPool.length]:null;
  askCharacter(id,text,history).then(async reply=>{
