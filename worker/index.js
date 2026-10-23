@@ -244,7 +244,12 @@ export default {
     if (!message) return json({ error: "消息不能为空。" }, 400);
 
     // Recent chat is a transcript, not this character's own assistant turns.
-    const prior = Array.isArray(body.history) ? body.history.slice(-12) : [];
+    const prior = (Array.isArray(body.history) ? body.history.slice(-12) : []).map(item => {
+      if (!item || typeof item !== "object") return item;
+      // The frontend stores transcript text in "text"; normalize it once so
+      // prompt building, contextual rules, and repetition checks all see it.
+      return { ...item, content: String(item.content ?? item.text ?? "").trim() };
+    });
     const transcript = prior.map(item => {
       if (!item) return "";
       const who = String(item.who || "").slice(0, 24);
@@ -518,7 +523,13 @@ export default {
         } else if (playfulChat) {
           fallbackReply = ({lin:"行啊，难得不用汇报路线。今天有什么小事想说？",mira:"好呀，我刚忙完一小阵，正好歇口气。你想聊点轻松的，还是我先讲讲这边的糗事？",oldzhou:"聊呗，难得这破收音机没先给我添堵。",ash:"嗯，今晚先不谈正事。外头总算安静了几分钟。",xiaoman:"好呀！我正好想歇会儿。刚才我在地铁口听见一只猫叫，差点以为又有东西下来了。" })[body.characterId];
         } else {
-          fallbackReply = ({lin:"嗯，我听见了。",mira:"嗯，听见了。",oldzhou:"行，我听着呢。",ash:"听到了。",xiaoman:"嗯，我听见啦。" })[body.characterId];
+          fallbackReply = ({
+            lin: "我在频道里。刚才说到的事我接着听，不用你每次都从头解释。",
+            mira: "我还在呢。刚才的话我会接着听，不用急着换话题；我们慢慢说。",
+            oldzhou: "频道没断。我听着呢，咱接着刚才那茬说，别又从头来一遍。",
+            ash: "我还在听。刚才那段我没忘，先顺着原来的话题说下去。",
+            xiaoman: "我在呀，刚才的话题还没聊完呢。你接着说，我这回不重新开场了。"
+          })[body.characterId];
         }
         finalReply = fallbackReply || "我听见了。";
       }
