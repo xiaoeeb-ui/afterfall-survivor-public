@@ -79,7 +79,8 @@ export class AfterfallRoom {
       const id = String(body.characterId || "");
       if (!["lin", "mira", "oldzhou", "ash", "xiaoman"].includes(id)) return Response.json({ error: "角色无效" }, { status: 400 });
       const memory = (await this.state.storage.get("memory:" + id)) || [];
-      memory.push(String(body.entry || "").slice(0, 400));
+      const entry = String(body.entry || "").trim().slice(0, 400);
+      if (entry && !memory.some(existing => String(existing || "").trim() === entry)) memory.push(entry);
       await this.state.storage.put("memory:" + id, memory.slice(-40));
       return Response.json({ ok: true });
     }
