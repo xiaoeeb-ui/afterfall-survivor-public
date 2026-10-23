@@ -75,6 +75,7 @@ function chooseResponders(text){
   const last=recent&&map[recent.who];
   if(/林野|高架桥那位|高架路那位/.test(t))return ["lin"];
   if(/我们需要先做什么|我们先做什么|先做什么|现在该做什么|接下来做什么|下一步做什么|下一步呢|该怎么办|先怎么办/.test(t))return ["lin"];
+  if(/这世界|这个世界|世界怎么了|世界现在|发生什么|现在怎么回事|到底怎么了|外面怎么了|末日怎么了/.test(t))return ["ash"];
   if(/米拉/.test(t))return ["mira"];
   if(/老周/.test(t))return ["oldzhou"];
   if(/灰鸦/.test(t))return ["ash"];
